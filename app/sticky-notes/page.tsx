@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useState, useRef } from "react";
 
 interface Note {
@@ -23,6 +23,7 @@ const COLORS = [
 
 export default function StickyNotes() {
   const constraintsRef = useRef(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [notes, setNotes] = useState<Note[]>([
     {
       id: 1,
@@ -47,7 +48,7 @@ export default function StickyNotes() {
       ...prev,
       {
         id: Date.now(),
-        text: "New Note",
+        text: "",
         x: Math.random() * (window.innerWidth - 300),
         y: Math.random() * (window.innerHeight - 300),
         color: COLORS[Math.floor(Math.random() * COLORS.length)],
@@ -62,6 +63,7 @@ export default function StickyNotes() {
 
   const deleteNote = (id: number) => {
     setNotes((prev) => prev.filter((n) => n.id !== id));
+    if (confirmDeleteId === id) setConfirmDeleteId(null);
   };
 
   return (
@@ -97,16 +99,55 @@ export default function StickyNotes() {
             boxShadow: "10px 10px 20px rgba(0,0,0,0.2)",
             zIndex: 100,
           }}
-          className={`absolute w-64 h-64 p-6 ${note.color} shadow-lg cursor-move flex flex-col`}
+          className={`absolute w-64 h-64 p-6 ${note.color} shadow-lg cursor-move flex flex-col group`}
         >
-          <div className="w-full h-8 bg-black/10 absolute top-0 left-0" />{" "}
+          {/* Delete Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent drag start if possible, though drag is on parent
+              if (!note.text.trim()) {
+                deleteNote(note.id);
+              } else {
+                setConfirmDeleteId(note.id);
+              }
+            }}
+            className="absolute -top-3 -right-3 bg-red-500 text-white p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 z-20"
+            title="Delete Note"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          {/* Confirmation Overlay */}
+          {confirmDeleteId === note.id && (
+            <div className="absolute inset-0 bg-black/60 rounded flex flex-col items-center justify-center p-4 z-30 text-center animate-in fade-in duration-200 backdrop-blur-sm">
+              <p className="text-white font-bold mb-4 font-sans text-lg">
+                Are you sure?
+              </p>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => deleteNote(note.id)}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-transform hover:scale-105 active:scale-95"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteId(null)}
+                  className="bg-white hover:bg-gray-100 text-black px-4 py-2 rounded-lg font-bold shadow-lg transition-transform hover:scale-105 active:scale-95"
+                >
+                  No
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="w-full h-8 bg-black/10 absolute top-0 left-0" />
           {/* Tape or header */}
           <textarea
             value={note.text}
             onChange={(e) => updateNoteText(note.id, e.target.value)}
-            onDoubleClick={() => deleteNote(note.id)}
             className="w-full h-full bg-transparent resize-none focus:outline-none font-handwriting text-xl text-slate-800 mt-4 leading-relaxed"
             spellCheck={false}
+            placeholder="Type something..."
           />
           <div className="absolute bottom-2 right-2 text-xs text-black/20 select-none">
             ID: {note.id.toString().slice(-4)}
