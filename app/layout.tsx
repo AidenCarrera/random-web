@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Random Web | Creative Coding Experiments",
+    default: "Random Web",
     template: "%s | Random Web",
   },
   description:
