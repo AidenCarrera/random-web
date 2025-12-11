@@ -7,40 +7,58 @@ export default function MatrixRain() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isPlaying, setIsPlaying] = useState(true);
 
+  const dropsRef = useRef<number[]>([]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Set canvas size
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-
     // Configuration
     const characters =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%^&*";
     const fontSize = 16;
-    let columns = Math.ceil(canvas.width / fontSize);
-    let drops: number[] = [];
-
-    // Initialize drops
-    const reset = () => {
-      columns = Math.ceil(canvas.width / fontSize);
-      drops = [];
-      for (let i = 0; i < columns; i++) {
-        drops[i] = Math.random() * -100; // Start above screen
-      }
-    };
-    reset();
-
     let animationId: number;
 
-    const draw = () => {
+    // Set canvas size
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      // Initialize drops if empty or resized largely
+      const columns = Math.ceil(canvas.width / fontSize);
+      if (dropsRef.current.length !== columns) {
+        const newDrops = [];
+        for (let i = 0; i < columns; i++) {
+          newDrops[i] = Math.random() * -100;
+        }
+        dropsRef.current = newDrops;
+      }
+    };
+
+    // Initial setup
+    if (dropsRef.current.length === 0) {
+      resizeCanvas();
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+
+    // Animation Loop with throttling
+    let lastTime = 0;
+    const fps = 60;
+    const interval = 1000 / fps;
+
+    const draw = (timestamp: number) => {
+      if (!isPlaying) return;
+
+      animationId = requestAnimationFrame(draw);
+
+      const deltaTime = timestamp - lastTime;
+      if (deltaTime < interval) return;
+
+      lastTime = timestamp - (deltaTime % interval);
+
       // Translucent black background to create trail effect
       ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -48,6 +66,7 @@ export default function MatrixRain() {
       ctx.fillStyle = "#0F0"; // Green text
       ctx.font = `${fontSize}px monospace`;
 
+      const drops = dropsRef.current;
       for (let i = 0; i < drops.length; i++) {
         const text = characters.charAt(
           Math.floor(Math.random() * characters.length)
@@ -59,7 +78,6 @@ export default function MatrixRain() {
         ctx.fillText(text, x, y);
 
         // Randomly send drop back to top after it crosses screen
-        // Adding Math.random() > 0.975 makes the drops fall not all at once
         if (y * fontSize > canvas.height && Math.random() > 0.975) {
           drops[i] = 0;
         }
@@ -67,14 +85,10 @@ export default function MatrixRain() {
         // Increment Y coordinate
         drops[i]++;
       }
-
-      if (isPlaying) {
-        animationId = requestAnimationFrame(draw);
-      }
     };
 
     if (isPlaying) {
-      draw();
+      animationId = requestAnimationFrame(draw);
     }
 
     return () => {
