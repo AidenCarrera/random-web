@@ -3,10 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 
 const EMOJIS = {
-  rain: ["💧", "🌧️", "☔"],
-  money: ["💸", "💰", "🤑", "💵"],
-  love: ["❤️", "💖", "🥰", "💌"],
-  food: ["🍔", "🍕", "🍟", "🥤"],
+  rain: ["💧", "🌧️", "☔", "⛈️", "🌊"],
+  money: ["💸", "💰", "🤑", "💵", "💎"],
+  love: ["❤️", "💖", "🥰", "💌", "💘"],
+  food: ["🍔", "🍕", "🍟", "🥤", "🌮"],
+  space: ["🚀", "🛸", "🌌", "⭐", "🌙"],
+  music: ["🎵", "🎸", "🎹", "🎧", "🎷"],
+  tech: ["💻", "🤖", "💾", "📱", "🔋"],
+  spooky: ["👻", "🎃", "🦇", "🕸️", "💀"],
+  ocean: ["🐠", "🐳", "🐙", "🦀", "🦈"],
+  animals: ["🐶", "🐱", "🦊", "🐼", "🦁"],
+  nature: ["🌸", "🌲", "🌵", "🍀", "🌻"],
+  party: ["🎉", "🎈", "🥳", "🥂", "🎂"],
+  sports: ["⚽", "🏀", "🏈", "⚾", "🎾"],
+  fruit: ["🍎", "🍌", "🍇", "🍓", "🍒"],
+  vehicles: ["🚗", "✈️", "🚂", "🚤", "🚜"],
+  time: ["⌚", "⏰", "⏳", "🌙", "☀️"],
+  tools: ["🔨", "🔧", "🪛", "⛏️", "⚙️"],
+  magic: ["✨", "🧙‍♂️", "🔮", "🦄", "🌟"],
+  faces: ["😀", "😂", "😎", "🤔", "😴"],
+  fire: ["🔥", "💥", "🧨", "🌋", "🚒"],
 };
 
 export default function EmojiRain() {
@@ -74,14 +90,14 @@ export default function EmojiRain() {
         className="absolute inset-0 pointer-events-none"
       />
 
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-md p-4 rounded-full shadow-xl flex gap-4">
+      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-md p-6 rounded-3xl shadow-xl flex flex-wrap justify-center gap-3 max-w-4xl w-[90%] max-h-[30vh] overflow-y-auto">
         {Object.keys(EMOJIS).map((key) => (
           <button
             key={key}
             onClick={() => setMode(key as keyof typeof EMOJIS)}
-            className={`px-4 py-2 rounded-full capitalize font-bold transition-all ${
+            className={`px-4 py-2 rounded-full capitalize font-bold text-sm transition-all whitespace-nowrap ${
               mode === key
-                ? "bg-sky-500 text-white shadow-lg scale-110"
+                ? "bg-sky-500 text-white shadow-lg scale-105"
                 : "bg-slate-100 text-slate-500 hover:bg-slate-200"
             }`}
           >
