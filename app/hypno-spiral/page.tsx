@@ -40,20 +40,28 @@ export default function HypnoSpiral() {
       const centerY = height / 2;
       const maxRadius = Math.sqrt(centerX * centerX + centerY * centerY);
 
-      const normalizedY = Math.abs(mouseRef.current.y - 0.5) * 2; // 0 at center, 1 at edges
+      // Asymmetrical Y-axis control
+      // Top half (y < 0.5): Controls distortion intensity
+      // Bottom half (y > 0.5): Controls line thickness
+      const yPos = mouseRef.current.y;
+      const topIntensity = yPos < 0.5 ? (0.5 - yPos) * 2 : 0; // 0 at center, 1 at top
+      const bottomIntensity = yPos > 0.5 ? (yPos - 0.5) * 2 : 0; // 0 at center, 1 at bottom
+
       const frequency = 0.02 + mouseRef.current.x * 0.08; // X controls wave frequency
 
       offsetRef.current -= 0.02 + mouseRef.current.x * 0.05; // Speed control
 
-      ctx.lineWidth = 2 + normalizedY * 12.5; // Thickness control (reduced intensity)
+      // Thickness influenced only by bottom half movement
+      ctx.lineWidth = 2 + bottomIntensity * 25;
 
       for (let r = 0; r < maxRadius; r += 10) {
         ctx.beginPath();
         const hue = (r * 0.5 + offsetRef.current * 5) % 360;
         ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
 
+        // Distortion influenced only by top half movement
         const distortion =
-          Math.sin(r * frequency - offsetRef.current) * 12.5 * normalizedY;
+          Math.sin(r * frequency - offsetRef.current) * (12.5 * topIntensity);
 
         ctx.arc(centerX, centerY, Math.max(0, r + distortion), 0, Math.PI * 2);
         ctx.stroke();
@@ -72,10 +80,10 @@ export default function HypnoSpiral() {
   }, []);
 
   return (
-    <div className="fixed inset-0 cursor-none">
+    <div className="fixed inset-0">
       <canvas ref={canvasRef} className="block" />
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 text-white font-mono mix-blend-difference pointer-events-none text-center text-sm md:text-base opacity-80">
-        MOVE MOUSE TO WARP REALITY
+      <div className="absolute bottom-30 left-1/2 -translate-x-1/2 text-white font-mono mix-blend-difference pointer-events-none text-center text-sm md:text-base opacity-80">
+        MOVE MOUSE TO WARP REALITY (TRY THE CORNERS!)
       </div>
     </div>
   );

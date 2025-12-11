@@ -64,7 +64,7 @@ export default function ConfettiCannon() {
       </button>
 
       <p className="mt-8 text-white font-bold opacity-80 animate-bounce">
-        Click for dopamine!
+        Click for a party!
       </p>
     </div>
   );
