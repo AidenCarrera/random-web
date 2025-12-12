@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import * as Tone from "tone";
 import { Play, Pause, Trash2, Music } from "lucide-react";
+import { PRESETS } from "./presets";
 
 // --- Configuration ---
 const STEPS = 16;
@@ -27,7 +28,7 @@ class AudioEngine {
   channels: Record<string, Tone.Channel> = {};
   meters: Record<string, Tone.Meter> = {};
 
-  master: Tone.Channel | null = null;
+  master: Tone.Volume | null = null;
   masterMeter: Tone.Meter | null = null;
   limit: Tone.Limiter | null = null;
 
@@ -36,7 +37,9 @@ class AudioEngine {
 
     // Create master chain
     this.limit = new Tone.Limiter(-1).toDestination();
-    this.master = new Tone.Channel({ volume: 0 }).connect(this.limit);
+    this.master = new Tone.Volume({ volume: 0, mute: false }).connect(
+      this.limit
+    );
     this.masterMeter = new Tone.Meter();
     this.master.connect(this.masterMeter);
 
@@ -142,6 +145,11 @@ class AudioEngine {
     }
   }
 
+  setSwing(amount: number) {
+    Tone.Transport.swing = amount;
+    Tone.Transport.swingSubdivision = "16n";
+  }
+
   getMeterValues() {
     const values: Record<string, number> = {};
     // Tracks
@@ -153,6 +161,37 @@ class AudioEngine {
       values["master"] = this.masterMeter.getValue() as number;
     }
     return values;
+  }
+
+  syncState(
+    volumes: Record<string, number>,
+    mutes: Record<string, boolean>,
+    solos: Record<string, boolean>
+  ) {
+    if (!this.master) return;
+
+    // Sync Master
+    this.setVolume("master", volumes["master"] ?? 0);
+    if (this.master) this.master.mute = mutes["master"] || false;
+
+    // Resolve Solos / Mutes for Tracks
+    const activeSolos = Object.values(solos).some((s) => s);
+
+    Object.keys(this.channels).forEach((id) => {
+      this.setVolume(id, volumes[id] ?? -6);
+
+      const channel = this.channels[id];
+      if (channel) {
+        const isMuted = mutes[id] || false;
+        const isSoloed = solos[id] || false;
+
+        const shouldMute = isMuted || (activeSolos && !isSoloed);
+
+        channel.mute = shouldMute;
+        // Ensure Tone.js legacy solo is OFF to avoid conflicts
+        channel.solo = false;
+      }
+    });
   }
 }
 
@@ -179,6 +218,10 @@ export default function BeatMaker() {
   });
   const [meterValues, setMeterValues] = useState<Record<string, number>>({});
 
+  const [mutes, setMutes] = useState<Record<string, boolean>>({});
+  const [solos, setSolos] = useState<Record<string, boolean>>({});
+  const [swing, setSwing] = useState(50);
+
   // Painting State
   const isPainting = useRef(false);
   const paintState = useRef(false); // true = add, false = remove
@@ -203,6 +246,39 @@ export default function BeatMaker() {
   const handleVolumeChange = (id: string, val: number) => {
     setVolumes((prev) => ({ ...prev, [id]: val }));
     engine.setVolume(id, val);
+  };
+
+  const toggleMute = (id: string) => {
+    setMutes((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      // Sync full state
+      engine.syncState(volumes, next, solos);
+      return next;
+    });
+  };
+
+  const toggleSolo = (id: string) => {
+    if (id === "master") return;
+    setSolos((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      engine.syncState(volumes, mutes, next);
+      return next;
+    });
+  };
+
+  const handleSwingChange = (val: number) => {
+    setSwing(val);
+
+    const toneSwing = Math.max(0, (val - 50) / 25);
+    engine.setSwing(toneSwing);
+  };
+
+  const loadPreset = (key: string) => {
+    if (PRESETS[key]) {
+      const p = PRESETS[key];
+      setGrid(p.grid.map((row) => row.map((cell) => cell === 1)));
+      handleSwingChange(p.swing);
+    }
   };
 
   // --- Initialization ---
@@ -257,13 +333,16 @@ export default function BeatMaker() {
     // Ensure engine is initialized regardless of context state
     if (!engine.master) {
       await engine.init();
+      engine.syncState(volumes, mutes, solos);
     } else if (Tone.getContext().state !== "running") {
       await Tone.start();
     }
+
     // Resume/Start Logic
     if (Tone.getContext().state !== "running") {
       await Tone.start();
     }
+
     if (isPlaying) {
       Tone.Transport.stop();
       setIsPlaying(false);
@@ -272,7 +351,7 @@ export default function BeatMaker() {
       Tone.Transport.start();
       setIsPlaying(true);
     }
-  }, [isPlaying]);
+  }, [isPlaying, volumes, mutes, solos]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -380,6 +459,48 @@ export default function BeatMaker() {
                 <span className="text-xs text-zinc-500">BPM</span>
               </div>
             </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                Swing
+              </label>
+              <div className="flex items-center gap-2 bg-zinc-950 px-3 py-1 rounded-md border border-zinc-800">
+                <input
+                  type="range"
+                  min="50"
+                  max="75"
+                  value={swing}
+                  onChange={(e) => handleSwingChange(parseInt(e.target.value))}
+                  className="w-20 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-zinc-400"
+                />
+                <span className="text-xs text-zinc-500 w-8 text-right">
+                  {swing}%
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                Preset
+              </label>
+              <select
+                title="Select Pattern"
+                className="bg-zinc-950 text-zinc-300 text-xs font-bold px-3 py-1.5 rounded-md border border-zinc-800 focus:outline-none focus:border-zinc-600"
+                onChange={(e) => {
+                  if (e.target.value) loadPreset(e.target.value);
+                }}
+                defaultValue=""
+              >
+                <option value="" disabled>
+                  LOAD...
+                </option>
+                {Object.entries(PRESETS).map(([key, p]) => (
+                  <option key={key} value={key}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -455,10 +576,32 @@ export default function BeatMaker() {
                 key={track.id}
                 className="flex flex-col items-center gap-3 w-16"
               >
-                {/* Meter Value */}
                 <span className="text-[10px] font-mono text-zinc-500 tabular-nums">
                   {volumes[track.id]?.toFixed(0)} dB
                 </span>
+
+                <div className="flex gap-1 mb-1">
+                  <button
+                    onClick={() => toggleMute(track.id)}
+                    className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold transition-colors ${
+                      mutes[track.id]
+                        ? "bg-amber-500 text-black shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                    }`}
+                  >
+                    M
+                  </button>
+                  <button
+                    onClick={() => toggleSolo(track.id)}
+                    className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold transition-colors ${
+                      solos[track.id]
+                        ? "bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                        : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                    }`}
+                  >
+                    S
+                  </button>
+                </div>
 
                 <div className="flex gap-2 h-48 bg-zinc-950/50 p-2 rounded-lg border border-zinc-800/50">
                   {/* Fader */}
@@ -524,6 +667,11 @@ export default function BeatMaker() {
             <span className="text-[10px] font-mono text-zinc-500 tabular-nums">
               {volumes["master"]?.toFixed(0)} dB
             </span>
+            <div className="flex gap-1 mb-1 opacity-0 pointer-events-none">
+              {/* Spacer to align Master fader with tracks due to M/S buttons */}
+              <div className="w-6 h-6" />
+              <div className="w-6 h-6" />
+            </div>
             <div className="flex gap-2 h-48 bg-zinc-950/50 p-2 rounded-lg border border-zinc-800/50">
               {/* Fader */}
               <div className="relative h-full w-8">
