@@ -6,18 +6,18 @@ import { useState } from "react";
 
 const PAGES = [
   // Phase 1
-  "/olo-shell",
-  "/brutalist",
+  "/olo-terminal",
+  "/shout-box",
   "/neon-cyber",
-  "/pastel-dream",
-  "/paper-editorial",
-  "/dark-dashboard",
+  "/mindful-breathe",
+  "/daily-oracle",
+  "/click-speed-test",
   "/pixel-art",
   "/nature-zen",
   "/glitch-chaos",
-  "/minimal-mono",
+  "/focus-timer",
   // Phase 2
-  "/matrix-system",
+  "/matrix-rain",
   "/gravity-box",
   "/beat-maker",
   "/confetti-cannon",

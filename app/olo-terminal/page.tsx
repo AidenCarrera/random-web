@@ -146,42 +146,10 @@ export default function OloTerminal() {
         if (!target || target === "~") {
           setCwd("~");
         } else if (target === "..") {
-          const parts = cwd.split("/");
-          if (parts.length > 1) {
-            // If we are at ~ (length 1 after split likely gives ["~"]), we stay.
-            // But valid path is like ~, ~/projects.
-            // cwd is initialized as "~". split is ["~"]. length is 1.
-            // If cwd is "~/projects", split is ["~", "projects"]. length 2.
-
-            if (cwd === "~") {
-              // Already at home, do nothing or show info?
-              // User says: "If the current directory (cwd) is already just "~", do not change the state"
-              // My logic parts.length > 1 handles this for "~/projects", but for "~":
-              // "~".split("/") -> ["~"]. Length is 1. So it won't enter here.
-              // So actually my existing logic might be fine, but I'll make it explicit as requested.
-            } else {
-              parts.pop();
-              setCwd(
-                parts.length === 1 && parts[0] === "" ? "~" : parts.join("/")
-              );
-            }
-          }
-          // WAIT, let's look at the original code:
-          // const parts = cwd.split("/");
-          // if (parts.length > 1) {
-          //   parts.pop();
-          //   setCwd(parts.length === 0 ? "~" : parts.join("/"));
-          // }
-          // If cwd is "~", split is ["~"]. length is 1. It does NOT enter the block.
-          // So it already doesn't go up.
-          // BUT, user asked to "Modify the logic...". Maybe they encountered a case where it did?
-          // Or maybe they want to ensure it works for "~".
-          // Let's rewrite it to be clearer and robust.
-
           if (cwd !== "~") {
-            const newParts = cwd.split("/");
-            newParts.pop();
-            setCwd(newParts.length === 0 ? "~" : newParts.join("/"));
+            const parts = cwd.split("/");
+            parts.pop();
+            setCwd(parts.length === 0 ? "~" : parts.join("/"));
           }
         } else {
           // Check if directory exists locally

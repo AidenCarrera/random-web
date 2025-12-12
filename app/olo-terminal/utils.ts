@@ -65,5 +65,9 @@ export const JOKES = [
   "Why do programmers prefer dark mode? Because light attracts bugs.",
   "How many programmers does it take to change a light bulb? None, that's a hardware problem.",
   "I would tell you a UDP joke, but you might not get it.",
-  "There are 2 types of people in the world: those who understand binary, and those who don't."
+  "There are 2 types of people in the world: those who understand binary, and those who don't.",
+  "A SQL query walks into a bar, walks up to two tables and asks... 'Can I join you?'",
+  "Why do Java programmers wear glasses? Because they don't C#.",
+  "In order to understand recursion, you must first understand recursion.",
+  "Why did the developer go broke? Because he used up all his cache."
 ];

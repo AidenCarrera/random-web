@@ -24,6 +24,7 @@
 .DS_Store
 *.pem
 .vscode
+/test.ps1
 
 # debug
 npm-debug.log*
