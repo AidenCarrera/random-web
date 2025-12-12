@@ -164,14 +164,6 @@ export default function PixelArt() {
       const newColor = activeTool === "eraser" ? DEFAULT_COLOR : selectedColor;
       if (newGrid[index] !== newColor) {
         newGrid[index] = newColor;
-        // Only push to history on mouse up for drag operations?
-        // For simplicity, we'll update local state during drag and commit on mouse up,
-        // BUT current structure updates state directly.
-        // To avoid history spam, dragging usually requires a temporary buffer.
-        // Let's implement a simpler "drag buffer" approach if needed, or just commit every pixel.
-        // Actually, committing every pixel makes history huge.
-        // Let's use a "tempGrid" approach for drag operations.
-        // Or simpler: Update `grid` directly during drag, and push to `history` only on `onMouseUp`.
         setGrid(newGrid);
       }
     }
@@ -192,10 +184,7 @@ export default function PixelArt() {
     if (isDrawing) {
       setIsDrawing(false);
       // Determine if grid changed compared to last history to push new state
-      // This requires comparing full arrays which can be heavy but necessary for clean history.
-      // Optimization: We can just push whatever `grid` is now if it's different from `history[index]`.
       const currentHistoryGrid = history[historyIndex];
-      // Simple JSON check or iteration
       if (JSON.stringify(grid) !== JSON.stringify(currentHistoryGrid)) {
         updateGrid(grid);
       }

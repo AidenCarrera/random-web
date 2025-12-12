@@ -76,8 +76,7 @@ class AudioEngine {
     this.channels[id] = channel;
     this.meters[id] = meter;
 
-    // Create Instrument and connect to Channel
-    // Using union type for instrument
+    // Create Instrument
     let inst:
       | Tone.MembraneSynth
       | Tone.NoiseSynth
@@ -114,7 +113,6 @@ class AudioEngine {
         inst.volume.value = -10;
         break;
       case "clap":
-        // Clap complex chain
         const filter = new Tone.Filter(1500, "bandpass");
         inst = new Tone.NoiseSynth({
           noise: { type: "white" },
@@ -189,9 +187,7 @@ class AudioEngine {
         inst.triggerAttackRelease("32n", time + 0.01, 0.7);
         inst.triggerAttackRelease("32n", time + 0.02, 0.5);
       } else if (id === "openhat" || id === "ride" || id === "cowbell") {
-        // Metal synths vary
         if (id === "cowbell") inst.triggerAttackRelease("8n", time);
-        // Cowbell fixed pitch usually but allow default
         else inst.triggerAttackRelease("32n", time, 0.8);
       } else {
         inst.triggerAttackRelease("8n", time);
@@ -435,11 +431,8 @@ export default function BeatMaker() {
       await engine.init();
       tracks.forEach((t) => engine.addTrack(t.id));
       engine.syncState(volumes, mutes, solos);
-    } else if (Tone.getContext().state !== "running") {
-      await Tone.start();
     }
 
-    // Resume/Start Logic
     if (Tone.getContext().state !== "running") {
       await Tone.start();
     }
