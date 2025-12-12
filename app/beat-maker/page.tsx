@@ -2,21 +2,33 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import * as Tone from "tone";
-import { Play, Pause, Trash2, Music } from "lucide-react";
+import { Play, Pause, Trash2, Music, Plus } from "lucide-react";
 import { PRESETS } from "./presets";
 
 // --- Configuration ---
 const STEPS = 16;
-const TRACKS_CONFIG = [
+const INITIAL_TRACKS = [
   { id: "kick", name: "KICK", color: "bg-rose-500", text: "text-rose-500" },
   { id: "snare", name: "SNARE", color: "bg-sky-500", text: "text-sky-500" },
-  {
-    id: "hihat",
-    name: "HIHAT",
-    color: "bg-amber-400",
-    text: "text-amber-400",
-  },
+  { id: "hihat", name: "HIHAT", color: "bg-amber-400", text: "text-amber-400" },
   { id: "clap", name: "CLAP", color: "bg-violet-500", text: "text-violet-500" },
+];
+
+const EXTRA_TRACKS = [
+  {
+    id: "openhat",
+    name: "OPEN HAT",
+    color: "bg-yellow-400",
+    text: "text-yellow-400",
+  },
+  { id: "ride", name: "RIDE", color: "bg-orange-500", text: "text-orange-500" },
+  {
+    id: "cowbell",
+    name: "COWBELL",
+    color: "bg-pink-500",
+    text: "text-pink-500",
+  },
+  { id: "rim", name: "RIM", color: "bg-teal-400", text: "text-teal-400" },
 ];
 
 // --- Audio Engine Class (Lazy Init) ---
@@ -44,10 +56,13 @@ class AudioEngine {
     this.master.connect(this.masterMeter);
 
     // Initialize Tracks
-    this.initTrack("kick");
-    this.initTrack("snare");
-    this.initTrack("hihat");
-    this.initTrack("clap");
+    INITIAL_TRACKS.forEach((t) => this.initTrack(t.id));
+  }
+
+  addTrack(id: string) {
+    if (!this.instruments[id]) {
+      this.initTrack(id);
+    }
   }
 
   private initTrack(id: string) {
@@ -73,17 +88,19 @@ class AudioEngine {
     switch (id) {
       case "kick":
         inst = new Tone.MembraneSynth({
-          pitchDecay: 0.05,
-          octaves: 10,
+          pitchDecay: 0.06,
+          octaves: 7,
           oscillator: { type: "sine" },
-          envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4 },
+          envelope: { attack: 0.001, decay: 0.5, sustain: 0.02, release: 1.4 },
         });
+        inst.volume.value = 2;
         break;
       case "snare":
         inst = new Tone.NoiseSynth({
           noise: { type: "white" },
-          envelope: { attack: 0.001, decay: 0.2, sustain: 0.01, release: 1.4 },
+          envelope: { attack: 0.001, decay: 0.2, sustain: 0.01, release: 1.2 },
         });
+        inst.volume.value = 0;
         break;
       case "hihat":
         inst = new Tone.MetalSynth({
@@ -94,21 +111,62 @@ class AudioEngine {
           octaves: 1,
         });
         inst.frequency.value = 250;
-        inst.volume.value = -8;
+        inst.volume.value = -10;
         break;
       case "clap":
         // Clap complex chain
         const filter = new Tone.Filter(1500, "bandpass");
         inst = new Tone.NoiseSynth({
           noise: { type: "white" },
-          envelope: { attack: 0.001, decay: 0.3, sustain: 0, release: 0.1 },
+          envelope: { attack: 0.001, decay: 0.18, sustain: 0, release: 0.08 },
         });
-        inst.volume.value = 0;
+        inst.volume.value = 2;
         inst.connect(filter);
-        // Connect filter to channel instead of master
+
         filter.connect(channel);
         this.instruments[id] = inst;
-        return; // Early return for clap special case
+        return;
+      case "openhat":
+        inst = new Tone.MetalSynth({
+          envelope: { attack: 0.001, decay: 0.2, release: 1.0 },
+          harmonicity: 5.1,
+          modulationIndex: 32,
+          resonance: 4000,
+          octaves: 1,
+        });
+        inst.frequency.value = 200;
+        inst.volume.value = -12;
+        break;
+      case "ride":
+        inst = new Tone.MetalSynth({
+          envelope: { attack: 0.001, decay: 1.0, release: 1.2 },
+          harmonicity: 3.1,
+          modulationIndex: 20,
+          resonance: 2800,
+          octaves: 1.5,
+        });
+        inst.volume.value = -20;
+        break;
+      case "cowbell":
+        inst = new Tone.MetalSynth({
+          envelope: { attack: 0.001, decay: 0.1, release: 0.2 },
+          harmonicity: 8,
+          modulationIndex: 12,
+          resonance: 1500,
+          octaves: 1,
+        });
+        inst.frequency.value = 750;
+        inst.volume.value = -10;
+        break;
+      case "rim":
+        inst = new Tone.MembraneSynth({
+          pitchDecay: 0.01,
+          octaves: 2,
+          oscillator: { type: "sine" },
+          envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 },
+        });
+        inst.volume.value = -4;
+        break;
     }
 
     if (inst) {
@@ -130,6 +188,11 @@ class AudioEngine {
         inst.triggerAttackRelease("32n", time, 1);
         inst.triggerAttackRelease("32n", time + 0.01, 0.7);
         inst.triggerAttackRelease("32n", time + 0.02, 0.5);
+      } else if (id === "openhat" || id === "ride" || id === "cowbell") {
+        // Metal synths vary
+        if (id === "cowbell") inst.triggerAttackRelease("8n", time);
+        // Cowbell fixed pitch usually but allow default
+        else inst.triggerAttackRelease("32n", time, 0.8);
       } else {
         inst.triggerAttackRelease("8n", time);
       }
@@ -170,11 +233,9 @@ class AudioEngine {
   ) {
     if (!this.master) return;
 
-    // Sync Master
     this.setVolume("master", volumes["master"] ?? 0);
     if (this.master) this.master.mute = mutes["master"] || false;
 
-    // Resolve Solos / Mutes for Tracks
     const activeSolos = Object.values(solos).some((s) => s);
 
     Object.keys(this.channels).forEach((id) => {
@@ -188,7 +249,6 @@ class AudioEngine {
         const shouldMute = isMuted || (activeSolos && !isSoloed);
 
         channel.mute = shouldMute;
-        // Ensure Tone.js legacy solo is OFF to avoid conflicts
         channel.solo = false;
       }
     });
@@ -199,8 +259,10 @@ const engine = new AudioEngine();
 
 export default function BeatMaker() {
   // --- UI State ---
+  const [tracks, setTracks] = useState(INITIAL_TRACKS);
+
   const [grid, setGrid] = useState<boolean[][]>(() =>
-    Array(TRACKS_CONFIG.length)
+    Array(INITIAL_TRACKS.length)
       .fill(null)
       .map(() => Array(STEPS).fill(false))
   );
@@ -214,6 +276,10 @@ export default function BeatMaker() {
     snare: -6,
     hihat: -6,
     clap: -6,
+    openhat: -6,
+    ride: -6,
+    cowbell: -6,
+    rim: -6,
     master: 0,
   });
   const [meterValues, setMeterValues] = useState<Record<string, number>>({});
@@ -276,8 +342,43 @@ export default function BeatMaker() {
   const loadPreset = (key: string) => {
     if (PRESETS[key]) {
       const p = PRESETS[key];
-      setGrid(p.grid.map((row) => row.map((cell) => cell === 1)));
+      const presetRows = p.grid.length;
+
+      const allPossibleTracks = [...INITIAL_TRACKS, ...EXTRA_TRACKS];
+      const targetTrackCount = Math.min(presetRows, allPossibleTracks.length);
+      const newTracks = allPossibleTracks.slice(0, targetTrackCount);
+
+      if (engine.master) {
+        newTracks.forEach((t) => {
+          engine.addTrack(t.id);
+        });
+      }
+
+      setTracks(newTracks);
+      setGrid(
+        p.grid
+          .slice(0, targetTrackCount)
+          .map((row) => row.map((cell) => cell === 1))
+      );
       handleSwingChange(p.swing);
+      setTempo(p.tempo);
+
+      setVolumes((prev) => {
+        const next = { ...prev };
+        newTracks.forEach((t) => {
+          if (next[t.id] === undefined) next[t.id] = -6;
+        });
+        return next;
+      });
+
+      const newMutes = {};
+      const newSolos = {};
+      setMutes(newMutes);
+      setSolos(newSolos);
+
+      if (engine.master) {
+        engine.syncState(volumes, newMutes, newSolos);
+      }
     }
   };
 
@@ -303,8 +404,8 @@ export default function BeatMaker() {
         }, time);
 
         // Audio Trigger
-        TRACKS_CONFIG.forEach((track, trackIdx) => {
-          if (grid[trackIdx][step]) {
+        tracks.forEach((track, trackIdx) => {
+          if (grid[trackIdx] && grid[trackIdx][step]) {
             engine.trigger(track.id, time);
           }
         });
@@ -315,7 +416,7 @@ export default function BeatMaker() {
 
     seq.start(0);
     seqRef.current = seq;
-  }, [grid]);
+  }, [grid, tracks]);
 
   // --- Transport Effects ---
   useEffect(() => {
@@ -330,9 +431,9 @@ export default function BeatMaker() {
 
   // --- Controls ---
   const togglePlay = useCallback(async () => {
-    // Ensure engine is initialized regardless of context state
     if (!engine.master) {
       await engine.init();
+      tracks.forEach((t) => engine.addTrack(t.id));
       engine.syncState(volumes, mutes, solos);
     } else if (Tone.getContext().state !== "running") {
       await Tone.start();
@@ -351,7 +452,7 @@ export default function BeatMaker() {
       Tone.Transport.start();
       setIsPlaying(true);
     }
-  }, [isPlaying, volumes, mutes, solos]);
+  }, [isPlaying, volumes, mutes, solos, tracks]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -366,10 +467,31 @@ export default function BeatMaker() {
 
   const clearGrid = () => {
     setGrid(
-      Array(TRACKS_CONFIG.length)
+      Array(tracks.length)
         .fill(null)
         .map(() => Array(STEPS).fill(false))
     );
+  };
+
+  const handleAddTrack = () => {
+    // Determine next track to add
+    const currentCount = tracks.length;
+    const initialCount = INITIAL_TRACKS.length;
+    const nextIndex = currentCount - initialCount;
+
+    if (nextIndex < EXTRA_TRACKS.length) {
+      const newTrack = EXTRA_TRACKS[nextIndex];
+
+      // Init audio
+      engine.addTrack(newTrack.id);
+
+      // Update state
+      setTracks((prev) => [...prev, newTrack]);
+      setGrid((prev) => [...prev, Array(STEPS).fill(false)]);
+
+      // Sync (Volume check)
+      setVolumes((prev) => ({ ...prev, [newTrack.id]: -6 }));
+    }
   };
 
   // --- Painting Logic ---
@@ -507,7 +629,7 @@ export default function BeatMaker() {
 
       {/* Sequencer Grid */}
       <div className="w-full max-w-5xl bg-zinc-900/50 p-8 rounded-xl border border-zinc-800 shadow-xl mb-8">
-        {TRACKS_CONFIG.map((track, trackIdx) => (
+        {tracks.map((track, trackIdx) => (
           <div key={track.id} className="flex items-center gap-4 mb-4">
             {/* Track Info */}
             <div className="w-20 shrink-0">
@@ -558,6 +680,19 @@ export default function BeatMaker() {
             </div>
           </div>
         ))}
+
+        {/* Add Track Button */}
+        {tracks.length < INITIAL_TRACKS.length + EXTRA_TRACKS.length && (
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={handleAddTrack}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-full text-xs font-bold text-zinc-400 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              ADD TRACK
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mixer Section */}
@@ -565,9 +700,9 @@ export default function BeatMaker() {
         <h2 className="text-zinc-500 font-bold text-xs uppercase tracking-widest mb-6 border-b border-zinc-800 pb-2">
           Mixer
         </h2>
-        <div className="flex justify-center gap-8">
+        <div className="flex justify-center gap-8 px-4 overflow-x-auto pb-4">
           {/* Track Channels */}
-          {TRACKS_CONFIG.map((track) => {
+          {tracks.map((track) => {
             const level = Math.max(-60, meterValues[track.id] || -60);
             const height = ((level + 60) / 60) * 100; // Map -60..0 to 0..100%
 
