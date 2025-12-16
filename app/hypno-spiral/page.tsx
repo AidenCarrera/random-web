@@ -29,8 +29,21 @@ export default function HypnoSpiral() {
       };
     };
 
+    const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault(); // Prevent scrolling
+      const touch = e.touches[0];
+      if (touch) {
+        mouseRef.current = {
+          x: touch.clientX / width,
+          y: touch.clientY / height,
+        };
+      }
+    };
+
     window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchstart", handleTouchMove, { passive: false });
 
     const draw = () => {
       ctx.fillStyle = "black";
@@ -76,6 +89,8 @@ export default function HypnoSpiral() {
       cancelAnimationFrame(animationId);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchstart", handleTouchMove);
     };
   }, []);
 
@@ -83,7 +98,7 @@ export default function HypnoSpiral() {
     <div className="fixed inset-0">
       <canvas ref={canvasRef} className="block" />
       <div className="absolute bottom-30 left-1/2 -translate-x-1/2 text-white font-mono mix-blend-difference pointer-events-none text-center text-sm md:text-base opacity-80">
-        MOVE MOUSE TO WARP REALITY (TRY THE CORNERS!)
+        DRAG TO WARP REALITY (TRY THE CORNERS!)
       </div>
     </div>
   );
