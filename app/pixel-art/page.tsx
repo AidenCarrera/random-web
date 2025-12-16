@@ -191,19 +191,56 @@ export default function PixelArt() {
     }
   };
 
+  const handleTouch = (e: React.TouchEvent) => {
+    // Prevent default to stop scrolling
+    // e.preventDefault(); // Moved to touch-action CSS for better performance, but strict prevention might be needed for some browsers.
+    // Actually, explicit preventDefault is often safer for drawing apps.
+    // However, passive listeners are default in React. capturing event might be needed.
+    // For now, relies on touch-action: none.
+
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    const element = document.elementFromPoint(
+      touch.clientX,
+      touch.clientY
+    ) as HTMLElement;
+    if (element && element.dataset.index) {
+      const index = parseInt(element.dataset.index, 10);
+      if (!isNaN(index)) {
+        if (e.type === "touchstart") {
+          setIsDrawing(true);
+          handleInteraction(index, true);
+        } else if (e.type === "touchmove" && isDrawing) {
+          handleInteraction(index, false);
+        }
+      }
+    }
+  };
+
+  const onTouchEndGlobal = () => {
+    if (isDrawing) {
+      setIsDrawing(false);
+      const currentHistoryGrid = history[historyIndex];
+      if (JSON.stringify(grid) !== JSON.stringify(currentHistoryGrid)) {
+        updateGrid(grid);
+      }
+    }
+  };
+
   return (
     <div
       className="min-h-screen bg-[#c2c3c7] flex flex-col items-center justify-center p-4 select-none font-mono"
       onMouseUp={onMouseUpGlobal}
     >
-      <h1 className="text-4xl text-[#1d2b53] mb-8 font-bold tracking-tighter pixel-font">
+      <h1 className="text-xl md:text-4xl text-[#1d2b53] mb-4 md:mb-8 font-bold tracking-tighter pixel-font text-center px-2">
         PIXEL_STUDIO_32
       </h1>
 
-      <div className="flex gap-4 items-start">
+      <div className="flex flex-col md:flex-row gap-4 items-center md:items-start md:justify-center w-full max-w-[100vw] overflow-hidden p-2">
         {/* Toolbar */}
-        <div className="flex flex-col gap-2 bg-[#1d2b53] p-2 rounded-lg shadow-lg">
-          <div className="grid grid-cols-2 gap-2 mb-2">
+        <div className="flex flex-wrap md:flex-col justify-center gap-2 bg-[#1d2b53] p-2 rounded-lg shadow-lg w-full md:w-auto shrink-0 touch-pan-x">
+          <div className="flex md:grid md:grid-cols-2 gap-2 mb-2">
             <ToolButton
               active={false}
               onClick={undo}
@@ -220,7 +257,7 @@ export default function PixelArt() {
             />
           </div>
 
-          <div className="h-px bg-white/20 mb-2" />
+          <div className="w-px h-full md:w-auto md:h-px bg-white/20 mx-1 md:mx-0 md:mb-2" />
 
           <ToolButton
             active={activeTool === "pencil"}
@@ -247,7 +284,7 @@ export default function PixelArt() {
             label="Picker"
           />
 
-          <div className="h-px bg-white/20 my-1" />
+          <div className="w-px h-full md:w-auto md:h-px bg-white/20 mx-1 md:mx-0 md:my-1" />
           <ToolButton
             active={showGrid}
             onClick={() => setShowGrid(!showGrid)}
@@ -255,7 +292,7 @@ export default function PixelArt() {
             label="Toggle Grid"
           />
 
-          <div className="h-px bg-white/20 my-1" />
+          <div className="w-px h-full md:w-auto md:h-px bg-white/20 mx-1 md:mx-0 md:my-1" />
 
           <button
             onClick={() =>
@@ -269,21 +306,28 @@ export default function PixelArt() {
         </div>
 
         {/* Canvas Container */}
-        <div className="bg-white p-2 shadow-[8px_8px_0px_#1d2b53] cursor-crosshair">
+        <div className="bg-white p-2 shadow-[8px_8px_0px_#1d2b53] cursor-crosshair max-w-full overflow-hidden">
           <div
             className={`grid ${
               showGrid ? "gap-px bg-[#c2c3c7] border border-[#c2c3c7]" : ""
             }`}
             style={{
-              gridTemplateColumns: `repeat(${GRID_SIZE}, 24px)`,
+              gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`,
+              width: "min(90vw, 800px)",
+              aspectRatio: "1/1",
+              touchAction: "none", // Critical for modifying browser gestures
             }}
+            onTouchStart={handleTouch}
+            onTouchMove={handleTouch}
+            onTouchEnd={onTouchEndGlobal}
           >
             {grid.map((color, i) => (
               <div
                 key={i}
+                data-index={i}
                 onMouseDown={() => onMouseDown(i)}
                 onMouseEnter={() => onMouseEnter(i)}
-                className={`w-6 h-6 transition-colors ${
+                className={`w-full h-full transition-colors ${
                   activeTool === "picker"
                     ? "cursor-copy hover:ring-2 ring-black z-10"
                     : ""
@@ -295,7 +339,7 @@ export default function PixelArt() {
         </div>
 
         {/* Palette */}
-        <div className="grid grid-cols-4 gap-1 bg-[#fff1e8] p-2 rounded-lg shadow-lg border-2 border-[#1d2b53]">
+        <div className="grid grid-cols-8 md:grid-cols-4 gap-1 bg-[#fff1e8] p-2 rounded-lg shadow-lg border-2 border-[#1d2b53] shrink-0">
           {COLORS.map((color) => (
             <button
               key={color}

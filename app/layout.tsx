@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: "%s | Random Web",
   },
   description:
-    "A sandbox for coding and UI experiments. Interfaces, rainbow circles, glass morphism,and other visual experiments.",
+    "A sandbox for coding and UI experiments. Interfaces, rainbow circles, glass morphism, and other visual experiments.",
   keywords: [
     "creative coding",
     "web design",
