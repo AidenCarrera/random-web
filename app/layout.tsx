@@ -18,16 +18,15 @@ export const metadata: Metadata = {
     template: "%s | Random Web",
   },
   description:
-    "A collection of unique, interactive, and stylistically distinct web experiences. Explore digital rain, brutalist designs, neon cyberpunk interfaces, and more.",
+    "A sandbox for coding and UI experiments. Interfaces, rainbow circles, glass morphism,and other visual experiments.",
   keywords: [
     "creative coding",
     "web design",
-    "interactive",
     "next.js",
     "generative art",
     "react",
     "tailwindcss",
-    "digital art",
+    "frontend experiments",
   ],
   authors: [{ name: "Aiden" }],
   creator: "Aiden",
@@ -40,26 +39,24 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://random-web-experiments.vercel.app", // Placeholder for production URL
+    url: "https://random-webs.vercel.app",
     title: "Random Web",
-    description:
-      "Dive into a universe of unique digital web experiences. From retro terminals to pastel dreams.",
+    description: "A bunch of random websites and visual experiments.",
     siteName: "Random Web",
     images: [
       {
-        url: "/og-image.jpg", // Suggested asset
+        url: "/thumbnail.jpg",
         width: 1200,
         height: 630,
-        alt: "Random Web Showcase",
+        alt: "Random Web Preview",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Random Web | Creative Coding Experiments",
-    description:
-      "Dive into a universe of unique digital web experiences. From retro terminals to pastel dreams.",
-    images: ["/og-image.jpg"],
+    title: "Random Web | Creative Coding",
+    description: "A bunch of weird websites and code experiments.",
+    images: ["/thumbnail.jpg"],
     creator: "@randomweb",
   },
   robots: {
