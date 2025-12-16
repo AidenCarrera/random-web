@@ -114,7 +114,7 @@ export default function MatrixRain() {
 
       <div className="absolute bottom-10 w-full text-center z-10 pointer-events-none">
         <p className="text-[#0F0]/50 text-sm tracking-[0.5em] animate-pulse">
-          THE CODE IS RAINING
+          CODE RAIN
         </p>
       </div>
 

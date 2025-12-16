@@ -9,7 +9,7 @@ export default function BrutalistPage() {
     <div className="min-h-screen bg-[#fff1f2] p-4 font-sans text-black overflow-hidden flex flex-col">
       <div className="flex-1 flex items-center justify-center p-8 border-8 border-black shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] bg-white relative">
         <h1
-          className="text-[12vw] font-black leading-none break-all text-center uppercase tracking-tighter"
+          className="text-[20vw] md:text-[12vw] font-black leading-none break-all text-center uppercase tracking-tighter"
           style={{ wordBreak: "break-word" }}
         >
           {text}

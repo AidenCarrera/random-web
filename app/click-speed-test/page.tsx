@@ -54,7 +54,7 @@ export default function DarkDashboard() {
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <MousePointer2 className="w-5 h-5" />
           </div>
-          SPEED_TEST_DASHBOARD
+          Click Speed Test
         </h1>
         <div className="text-sm text-slate-500">v2.4.0-stable</div>
       </header>

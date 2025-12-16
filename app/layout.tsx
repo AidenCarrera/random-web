@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://random-webs.vercel.app"),
   title: {
     default: "Random Web",
     template: "%s | Random Web",

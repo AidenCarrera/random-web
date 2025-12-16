@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import * as Tone from "tone";
-import { Play, Pause, Trash2, Music, Plus } from "lucide-react";
+import { Play, Pause, Trash2, Music, Plus, Smartphone } from "lucide-react";
 import { PRESETS } from "./presets";
 
 // --- Configuration ---
@@ -266,7 +266,28 @@ export default function BeatMaker() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [tempo, setTempo] = useState(120);
-  // Removed global single volume state in favor of trackVolumes
+  const [tempoInput, setTempoInput] = useState("120"); // Buffer for typing
+
+  // Sync tempoInput when tempo changes (e.g. preset load)
+  useEffect(() => {
+    setTempoInput(tempo.toString());
+  }, [tempo]);
+
+  const handleTempoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTempoInput(e.target.value);
+  };
+
+  const commitTempo = () => {
+    let val = parseInt(tempoInput);
+    if (isNaN(val)) val = 120;
+
+    // Clamp
+    val = Math.min(300, Math.max(40, val));
+
+    setTempo(val);
+    setTempoInput(val.toString());
+  };
+
   const [volumes, setVolumes] = useState<Record<string, number>>({
     kick: -6,
     snare: -6,
@@ -488,26 +509,38 @@ export default function BeatMaker() {
   };
 
   // --- Painting Logic ---
-  const handleMouseDown = (trackIdx: number, stepIdx: number) => {
-    isPainting.current = true;
-    const newState = !grid[trackIdx][stepIdx];
-    paintState.current = newState;
-    updateStep(trackIdx, stepIdx, newState);
-  };
+  // Memoized to prevent SequencerGrid re-renders on volume change
+  const updateStep = useCallback(
+    (trackIdx: number, stepIdx: number, val: boolean) => {
+      setGrid((prev) => {
+        const newGrid = prev.map((row) => [...row]);
+        newGrid[trackIdx][stepIdx] = val;
+        return newGrid;
+      });
+    },
+    []
+  );
 
-  const handleMouseEnter = (trackIdx: number, stepIdx: number) => {
-    if (isPainting.current) {
-      updateStep(trackIdx, stepIdx, paintState.current);
-    }
-  };
+  const handleMouseDown = useCallback(
+    (trackIdx: number, stepIdx: number) => {
+      isPainting.current = true;
+      // We need current grid value. Since `grid` is a dependency, this function recreates when grid changes.
+      // But it WON'T recreate when 'volumes' changes.
+      const newState = !grid[trackIdx][stepIdx];
+      paintState.current = newState;
+      updateStep(trackIdx, stepIdx, newState);
+    },
+    [grid, updateStep]
+  );
 
-  const updateStep = (trackIdx: number, stepIdx: number, val: boolean) => {
-    setGrid((prev) => {
-      const newGrid = prev.map((row) => [...row]);
-      newGrid[trackIdx][stepIdx] = val;
-      return newGrid;
-    });
-  };
+  const handleMouseEnter = useCallback(
+    (trackIdx: number, stepIdx: number) => {
+      if (isPainting.current) {
+        updateStep(trackIdx, stepIdx, paintState.current);
+      }
+    },
+    [updateStep]
+  );
 
   useEffect(() => {
     const handleUp = () => (isPainting.current = false);
@@ -516,91 +549,102 @@ export default function BeatMaker() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 flex flex-col items-center justify-center font-sans select-none">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 flex flex-col items-center justify-center font-sans select-none relative">
+      {/* Rotate Device Overlay */}
+      <div className="fixed inset-0 z-50 bg-zinc-950 flex-col items-center justify-center p-8 text-center hidden portrait:flex md:hidden">
+        <Smartphone className="w-16 h-16 text-emerald-500 mb-6 animate-pulse" />
+        <h2 className="text-2xl font-bold text-white mb-4">
+          PLEASE ROTATE DEVICE
+        </h2>
+        <p className="text-zinc-400 max-w-xs">
+          Studio 808 requires a landscape view.
+        </p>
+      </div>
+
       {/* Header */}
-      <div className="mb-8 text-center w-full max-w-4xl">
-        <h1 className="text-4xl font-bold tracking-tight text-white mb-6">
+      <div className="mb-2 md:mb-8 text-center w-full max-w-4xl">
+        <h1 className="text-xl md:text-4xl font-bold tracking-tight text-white mb-2 md:mb-6">
           STUDIO 808
         </h1>
 
         {/* Controls Bar */}
-        <div className="flex flex-wrap gap-4 justify-between items-center bg-zinc-900 border border-zinc-800 p-4 rounded-xl shadow-sm">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-wrap gap-2 md:gap-4 justify-between items-center bg-zinc-900 border border-zinc-800 p-2 md:p-4 rounded-xl shadow-sm">
+          <div className="flex items-center gap-2 md:gap-4">
             <button
               onClick={togglePlay}
-              className={`flex items-center gap-2 px-6 py-2 rounded-md font-semibold transition-all ${
+              className={`flex items-center gap-2 px-3 py-1 md:px-6 md:py-2 rounded-md font-semibold text-xs md:text-base transition-all ${
                 isPlaying
                   ? "bg-emerald-600 text-white hover:bg-emerald-500 shadow-md"
                   : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
               }`}
             >
               {isPlaying ? (
-                <Pause className="w-5 h-5" />
+                <Pause className="w-3 h-3 md:w-5 md:h-5" />
               ) : (
-                <Play className="w-5 h-5" />
+                <Play className="w-3 h-3 md:w-5 md:h-5" />
               )}
               {isPlaying ? "STOP" : "PLAY"}
             </button>
 
             <button
               onClick={clearGrid}
-              className="p-2 hover:text-rose-500 transition-colors text-zinc-500"
+              className="p-1 md:p-2 hover:text-rose-500 transition-colors text-zinc-500"
               title="Clear Pattern"
             >
-              <Trash2 className="w-5 h-5" />
+              <Trash2 className="w-3 h-3 md:w-5 md:h-5" />
             </button>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-2 md:gap-6">
+            <div className="flex flex-col gap-0.5 md:gap-1">
+              <label className="text-[8px] md:text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
                 Tempo
               </label>
-              <div className="flex items-center gap-2 bg-zinc-950 px-3 py-1 rounded-md border border-zinc-800">
-                <Music className="w-3 h-3 text-zinc-400" />
+              <div className="flex items-center gap-1 md:gap-2 bg-zinc-950 px-2 py-0.5 md:px-3 md:py-1 rounded-md border border-zinc-800">
+                <Music className="w-2 h-2 md:w-3 md:h-3 text-zinc-400" />
                 <input
                   type="number"
-                  value={tempo}
-                  onChange={(e) =>
-                    setTempo(
-                      Math.min(
-                        300,
-                        Math.max(40, parseInt(e.target.value) || 120)
-                      )
-                    )
-                  }
-                  className="w-12 bg-transparent text-center focus:outline-none font-bold text-zinc-200"
+                  value={tempoInput}
+                  onChange={handleTempoChange}
+                  onBlur={commitTempo}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      commitTempo();
+                      (e.target as HTMLInputElement).blur();
+                    }
+                  }}
+                  className="w-8 md:w-12 bg-transparent text-center focus:outline-none font-bold text-zinc-200 text-xs md:text-base"
                 />
-                <span className="text-xs text-zinc-500">BPM</span>
+                <span className="text-[8px] md:text-xs text-zinc-500">BPM</span>
               </div>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+            <div className="flex flex-col gap-0.5 md:gap-1">
+              <label className="text-[8px] md:text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
                 Swing
               </label>
-              <div className="flex items-center gap-2 bg-zinc-950 px-3 py-1 rounded-md border border-zinc-800">
+              <div className="flex items-center gap-1 md:gap-2 bg-zinc-950 px-2 py-0.5 md:px-3 md:py-1 rounded-md border border-zinc-800">
                 <input
                   type="range"
                   min="50"
                   max="75"
                   value={swing}
                   onChange={(e) => handleSwingChange(parseInt(e.target.value))}
-                  className="w-20 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-zinc-400"
+                  className="w-12 md:w-20 h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-zinc-400"
                 />
-                <span className="text-xs text-zinc-500 w-8 text-right">
+                <span className="text-[8px] md:text-xs text-zinc-500 w-6 md:w-8 text-right">
                   {swing}%
                 </span>
               </div>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+            <div className="flex flex-col gap-0.5 md:gap-1">
+              <label className="text-[8px] md:text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
                 Preset
               </label>
               <select
                 title="Select Pattern"
-                className="bg-zinc-950 text-zinc-300 text-xs font-bold px-3 py-1.5 rounded-md border border-zinc-800 focus:outline-none focus:border-zinc-600"
+                className="bg-zinc-950 text-zinc-300 text-[10px] md:text-xs font-bold px-2 py-1 md:px-3 md:py-1.5 rounded-md border border-zinc-800 focus:outline-none focus:border-zinc-600"
                 onChange={(e) => {
                   if (e.target.value) loadPreset(e.target.value);
                 }}
@@ -620,80 +664,25 @@ export default function BeatMaker() {
         </div>
       </div>
 
-      {/* Sequencer Grid */}
-      <div className="w-full max-w-5xl bg-zinc-900/50 p-8 rounded-xl border border-zinc-800 shadow-xl mb-8">
-        {tracks.map((track, trackIdx) => (
-          <div key={track.id} className="flex items-center gap-4 mb-4">
-            {/* Track Info */}
-            <div className="w-20 shrink-0">
-              <div
-                className={`text-xs font-bold ${track.text} tracking-widest mb-1`}
-              >
-                {track.name}
-              </div>
-              <div
-                className={`h-1 w-full bg-zinc-800 rounded-full overflow-hidden`}
-              >
-                <div className={`h-full w-full ${track.color} opacity-70`} />
-              </div>
-            </div>
-
-            {/* Steps */}
-            <div className="flex-1 grid grid-cols-16 gap-1 relative">
-              {grid[trackIdx].map((isActive, stepIdx) => {
-                const isDownbeat = stepIdx % 4 === 0;
-                return (
-                  <div
-                    key={stepIdx}
-                    className="aspect-square relative"
-                    onMouseDown={() => handleMouseDown(trackIdx, stepIdx)}
-                    onMouseEnter={() => handleMouseEnter(trackIdx, stepIdx)}
-                  >
-                    <div
-                      className={`
-                            absolute inset-0 rounded-sm transition-all duration-75 cursor-pointer
-                            ${
-                              isActive
-                                ? track.color
-                                : isDownbeat
-                                ? "bg-zinc-800"
-                                : "bg-zinc-800/40"
-                            }
-                            ${
-                              currentStep === stepIdx
-                                ? "brightness-125 scale-105 ring-1 ring-zinc-400 z-10"
-                                : ""
-                            }
-                            hover:brightness-110
-                        `}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-
-        {/* Add Track Button */}
-        {tracks.length < INITIAL_TRACKS.length + EXTRA_TRACKS.length && (
-          <div className="flex justify-center mt-4">
-            <button
-              onClick={handleAddTrack}
-              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-full text-xs font-bold text-zinc-400 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              ADD TRACK
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Sequencer Grid via Memoized Component */}
+      <SequencerGrid
+        tracks={tracks}
+        grid={grid}
+        currentStep={currentStep}
+        onMouseDown={handleMouseDown}
+        onMouseEnter={handleMouseEnter}
+        onAddTrack={handleAddTrack}
+        showAddButton={
+          tracks.length < INITIAL_TRACKS.length + EXTRA_TRACKS.length
+        }
+      />
 
       {/* Mixer Section */}
       <div className="w-full max-w-5xl bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-xl">
-        <h2 className="text-zinc-500 font-bold text-xs uppercase tracking-widest mb-6 border-b border-zinc-800 pb-2">
+        <h2 className="text-zinc-500 font-bold text-xs uppercase tracking-widest mb-3 md:mb-6 border-b border-zinc-800 pb-2">
           Mixer
         </h2>
-        <div className="flex justify-center gap-8 px-4 overflow-x-auto pb-4">
+        <div className="flex justify-start lg:justify-center gap-2 md:gap-8 px-4 overflow-x-auto pb-4 w-full">
           {/* Track Channels */}
           {tracks.map((track) => {
             const level = Math.max(-60, meterValues[track.id] || -60);
@@ -702,7 +691,7 @@ export default function BeatMaker() {
             return (
               <div
                 key={track.id}
-                className="flex flex-col items-center gap-3 w-16"
+                className="flex flex-col items-center gap-2 md:gap-3 w-12 md:w-16 shrink-0"
               >
                 <span className="text-[10px] font-mono text-zinc-500 tabular-nums">
                   {volumes[track.id]?.toFixed(0)} dB
@@ -731,9 +720,9 @@ export default function BeatMaker() {
                   </button>
                 </div>
 
-                <div className="flex gap-2 h-48 bg-zinc-950/50 p-2 rounded-lg border border-zinc-800/50">
+                <div className="flex gap-1 md:gap-2 h-40 md:h-48 bg-zinc-950/50 p-1 md:p-2 rounded-lg border border-zinc-800/50">
                   {/* Fader */}
-                  <div className="relative h-full w-8">
+                  <div className="relative h-full w-6 md:w-8">
                     <input
                       type="range"
                       min="-60"
@@ -743,7 +732,7 @@ export default function BeatMaker() {
                       onChange={(e) =>
                         handleVolumeChange(track.id, parseInt(e.target.value))
                       }
-                      className="absolute inset-0 w-[192px] h-8 origin-top-left -rotate-90 translate-y-[192px] opacity-0 cursor-pointer z-20"
+                      className="absolute inset-0 w-40 md:w-48 h-8 origin-top-left -rotate-90 translate-y-40 md:translate-y-48 opacity-0 cursor-pointer z-20 touch-none"
                     />
                     {/* Visual Thumb */}
                     <div
@@ -791,7 +780,7 @@ export default function BeatMaker() {
           {/* Master Channel */}
           <div className="w-px bg-zinc-800 mx-4" />
 
-          <div className="flex flex-col items-center gap-3 w-16">
+          <div className="flex flex-col items-center gap-2 md:gap-3 w-12 md:w-16 shrink-0">
             <span className="text-[10px] font-mono text-zinc-500 tabular-nums">
               {volumes["master"]?.toFixed(0)} dB
             </span>
@@ -800,9 +789,9 @@ export default function BeatMaker() {
               <div className="w-6 h-6" />
               <div className="w-6 h-6" />
             </div>
-            <div className="flex gap-2 h-48 bg-zinc-950/50 p-2 rounded-lg border border-zinc-800/50">
+            <div className="flex gap-1 md:gap-2 h-40 md:h-48 bg-zinc-950/50 p-1 md:p-2 rounded-lg border border-zinc-800/50">
               {/* Fader */}
-              <div className="relative h-full w-8">
+              <div className="relative h-full w-6 md:w-8">
                 <input
                   type="range"
                   min="-60"
@@ -812,7 +801,7 @@ export default function BeatMaker() {
                   onChange={(e) =>
                     handleVolumeChange("master", parseInt(e.target.value))
                   }
-                  className="absolute inset-0 w-[192px] h-8 origin-top-left -rotate-90 translate-y-[192px] opacity-0 cursor-pointer z-20"
+                  className="absolute inset-0 w-40 md:w-48 h-8 origin-top-left -rotate-90 translate-y-40 md:translate-y-48 opacity-0 cursor-pointer z-20 touch-none"
                 />
                 {/* Visual Thumb */}
                 <div
@@ -858,3 +847,159 @@ export default function BeatMaker() {
     </div>
   );
 }
+
+// --- Memoized Components ---
+
+interface SequencerGridProps {
+  tracks: typeof INITIAL_TRACKS;
+  grid: boolean[][];
+  currentStep: number;
+  onMouseDown: (trackIdx: number, stepIdx: number) => void;
+  onMouseEnter: (trackIdx: number, stepIdx: number) => void;
+  onAddTrack: () => void;
+  showAddButton: boolean;
+}
+
+const SequencerGrid = memo(function SequencerGrid({
+  tracks,
+  grid,
+  currentStep,
+  onMouseDown,
+  onMouseEnter,
+  onAddTrack,
+  showAddButton,
+}: SequencerGridProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lastTouchRef = useRef<{ track: number; step: number } | null>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      // Prevent default to stop scrolling/zooming immediately
+      if (e.cancelable) e.preventDefault();
+
+      const touch = e.touches[0];
+      const element = document.elementFromPoint(touch.clientX, touch.clientY);
+      const cell = element?.closest("[data-track][data-step]") as HTMLElement;
+
+      if (cell) {
+        const trackIdx = parseInt(cell.dataset.track!);
+        const stepIdx = parseInt(cell.dataset.step!);
+
+        lastTouchRef.current = { track: trackIdx, step: stepIdx };
+        onMouseDown(trackIdx, stepIdx);
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.cancelable) e.preventDefault();
+
+      const touch = e.touches[0];
+      const element = document.elementFromPoint(touch.clientX, touch.clientY);
+      const cell = element?.closest("[data-track][data-step]") as HTMLElement;
+
+      if (cell) {
+        const trackIdx = parseInt(cell.dataset.track!);
+        const stepIdx = parseInt(cell.dataset.step!);
+
+        if (
+          !lastTouchRef.current ||
+          lastTouchRef.current.track !== trackIdx ||
+          lastTouchRef.current.step !== stepIdx
+        ) {
+          lastTouchRef.current = { track: trackIdx, step: stepIdx };
+          onMouseEnter(trackIdx, stepIdx);
+        }
+      }
+    };
+
+    // Passive: false is required to allow preventDefault
+    container.addEventListener("touchstart", handleTouchStart, {
+      passive: false,
+    });
+    container.addEventListener("touchmove", handleTouchMove, {
+      passive: false,
+    });
+
+    return () => {
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+    };
+  }, [onMouseDown, onMouseEnter]); // Dependencies must be stable (they are, via useCallback in parent)
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full max-w-5xl bg-zinc-900/50 p-8 rounded-xl border border-zinc-800 shadow-xl mb-8"
+    >
+      {tracks.map((track, trackIdx) => (
+        <div key={track.id} className="flex items-center gap-4 mb-4">
+          {/* Track Info */}
+          <div className="w-20 shrink-0">
+            <div
+              className={`text-xs font-bold ${track.text} tracking-widest mb-1`}
+            >
+              {track.name}
+            </div>
+            <div
+              className={`h-1 w-full bg-zinc-800 rounded-full overflow-hidden`}
+            >
+              <div className={`h-full w-full ${track.color} opacity-70`} />
+            </div>
+          </div>
+
+          {/* Steps */}
+          <div className="flex-1 grid grid-cols-16 gap-1 relative">
+            {grid[trackIdx].map((isActive, stepIdx) => {
+              const isDownbeat = stepIdx % 4 === 0;
+              return (
+                <div
+                  key={stepIdx}
+                  className="aspect-square relative touch-none"
+                  data-track={trackIdx}
+                  data-step={stepIdx}
+                  onMouseDown={() => onMouseDown(trackIdx, stepIdx)}
+                  onMouseEnter={() => onMouseEnter(trackIdx, stepIdx)}
+                >
+                  <div
+                    className={`
+                          absolute inset-0 rounded-sm transition-all duration-75 cursor-pointer
+                          ${
+                            isActive
+                              ? track.color
+                              : isDownbeat
+                              ? "bg-zinc-800"
+                              : "bg-zinc-800/40"
+                          }
+                          ${
+                            currentStep === stepIdx
+                              ? "brightness-125 scale-105 ring-1 ring-zinc-400 z-10"
+                              : ""
+                          }
+                          hover:brightness-110
+                      `}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {/* Add Track Button */}
+      {showAddButton && (
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={onAddTrack}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-full text-xs font-bold text-zinc-400 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            ADD TRACK
+          </button>
+        </div>
+      )}
+    </div>
+  );
+});
