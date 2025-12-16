@@ -26,7 +26,6 @@ border: 1px solid rgba(255, 255, 255, ${border});`;
 
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center font-sans bg-[#111]">
-      {/* Rich Animated Background */}
       <div className="absolute inset-0 z-0">
         <motion.div
           animate={{
@@ -54,9 +53,7 @@ border: 1px solid rgba(255, 255, 255, ${border});`;
         />
       </div>
 
-      {/* Main Interface Grid */}
       <div className="relative z-10 w-full max-w-7xl p-6 grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
-        {/* Editor Controls */}
         <div className="bg-gray/10 backdrop-blur-xl border border-white/10 p-8 rounded-3xl shadow-2xl text-white space-y-8">
           <div className="flex items-center gap-3 mb-4">
             <Sliders className="w-6 h-6 text-pink-500" />
@@ -65,7 +62,6 @@ border: 1px solid rgba(255, 255, 255, ${border});`;
             </h2>
           </div>
 
-          {/* Slider Group */}
           <div className="space-y-6">
             <Control
               label="Blur"
@@ -109,7 +105,6 @@ border: 1px solid rgba(255, 255, 255, ${border});`;
             />
           </div>
 
-          {/* CSS Output */}
           <div className="bg-gray-900/10 rounded-xl p-4 font-mono text-xs text-gray-100 relative group border border-white/5">
             <button
               onClick={handleCopy}
@@ -125,7 +120,6 @@ border: 1px solid rgba(255, 255, 255, ${border});`;
           </div>
         </div>
 
-        {/* Preview Area */}
         <div className="lg:col-span-2 h-[600px] flex items-center justify-center relative perspective-1000">
           <p className="absolute top-0 text-white/70 text-sm font-mono tracking-widest uppercase mb-4 w-full text-center">
             Interactive Preview &bull; Drag Me
@@ -143,7 +137,6 @@ border: 1px solid rgba(255, 255, 255, ${border});`;
             }}
             className="w-96 h-64 shadow-2xl flex flex-col items-start justify-between p-8 text-white cursor-grab active:cursor-grabbing"
           >
-            {/* Mock Content */}
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm" />
               <div className="h-3 w-32 bg-white/20 rounded-full" />

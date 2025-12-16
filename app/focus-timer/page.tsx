@@ -104,11 +104,8 @@ export default function MinimalMono() {
     <div
       ref={containerRef}
       className="min-h-screen flex flex-col items-center justify-center font-mono relative overflow-hidden transition-colors will-change-[background]"
-      style={{
-        background: "white", // Initial state
-      }}
+      style={{}}
     >
-      {/* Content Container with Blend Mode */}
       <div className="flex flex-col items-center z-10 mix-blend-difference text-white">
         {isEditing ? (
           <div className="flex items-center gap-2 text-[20vw] leading-none font-bold tracking-tighter tabular-nums selection:bg-transparent">

@@ -6,7 +6,6 @@ import { Cpu, Wifi, Settings2 } from "lucide-react";
 export default function NeonCyber() {
   const [text, setText] = useState("CYBERPUNK");
 
-  // Config States
   const [caesarShift, setCaesarShift] = useState(3);
   const [binarySep, setBinarySep] = useState(true);
   const [hexCase, setHexCase] = useState<"upper" | "lower">("upper");
@@ -14,7 +13,6 @@ export default function NeonCyber() {
   const [atbashMirror, setAtbashMirror] = useState(false);
   const [rotVariant, setRotVariant] = useState<"rot13" | "rot47">("rot13");
 
-  // Transformers
   const toBinary = (str: string, separator: boolean) =>
     str
       .split("")
@@ -78,17 +76,13 @@ export default function NeonCyber() {
 
   return (
     <div className="min-h-screen bg-[#050510] text-[#00ff9d] p-8 font-mono relative overflow-hidden">
-      {/* Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(0,255,157,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,157,0.05)_1px,transparent_1px)] bg-size-[50px_50px] pointer-events-none" />
 
-      {/* Ambient Glows */}
       <div className="absolute top-0 left-0 w-full h-32 bg-[#00ff9d]/10 blur-[100px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#ff00ff]/10 blur-[120px] pointer-events-none" />
 
       <div className="relative z-10 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 pt-10">
-        {/* LEFT COLUMN: Input & Config Rack */}
         <div className="space-y-8 border border-[#00ff9d]/20 bg-[#0a0a1f]/50 p-6 rounded-xl backdrop-blur-sm shadow-[0_0_20px_rgba(0,255,157,0.05)]">
-          {/* Header */}
           <div className="flex items-center gap-4 text-[#ff00ff]">
             <Cpu className="w-10 h-10 drop-shadow-[0_0_8px_#ff00ff]" />
             <h1 className="text-4xl font-bold tracking-tighter drop-shadow-[0_0_15px_rgba(255,0,255,0.8)]">
@@ -96,7 +90,6 @@ export default function NeonCyber() {
             </h1>
           </div>
 
-          {/* Main Input */}
           <div className="relative group">
             <div className="absolute -inset-1 bg-linear-to-r from-[#00ff9d] to-[#ff00ff] opacity-55 blur-xl group-hover:opacity-75 transition duration-500"></div>
             <textarea
@@ -108,7 +101,6 @@ export default function NeonCyber() {
             />
           </div>
 
-          {/* CONFIGURATION RACK */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-2 border-b border-[#00ff9d]/30 pb-2">
               <Settings2 className="w-5 h-5 text-[#00ff9d]" />
@@ -117,7 +109,6 @@ export default function NeonCyber() {
               </span>
             </div>
 
-            {/* Binary Config Module (Magenta) */}
             <div className="bg-[#0a0a1f] border-l-4 border-[#ff00ff] p-4 flex items-center justify-between shadow-[0_0_15px_rgba(255,0,255,0.1)] hover:bg-[#11112b] transition-colors relative overflow-hidden group">
               <div className="absolute inset-0 bg-[#ff00ff]/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
               <div>
@@ -149,7 +140,6 @@ export default function NeonCyber() {
               </div>
             </div>
 
-            {/* Hex Config Module (Cyan) */}
             <div className="bg-[#0a0a1f] border-l-4 border-[#00ffff] p-4 flex items-center justify-between shadow-[0_0_15px_rgba(0,255,255,0.1)] hover:bg-[#11112b] transition-colors relative overflow-hidden group">
               <div className="absolute inset-0 bg-[#00ffff]/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
               <div>
@@ -184,7 +174,6 @@ export default function NeonCyber() {
               </div>
             </div>
 
-            {/* Caesar Config Module (Yellow) */}
             <div className="bg-[#0a0a1f] border-l-4 border-[#ffff00] p-4 shadow-[0_0_15px_rgba(255,255,0,0.1)] hover:bg-[#11112b] transition-colors relative overflow-hidden group">
               <div className="absolute inset-0 bg-[#ffff00]/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
               <div className="flex justify-between items-center mb-2">
@@ -211,7 +200,6 @@ export default function NeonCyber() {
               />
             </div>
 
-            {/* Base64 Config Module (Orange) */}
             <div className="bg-[#0a0a1f] border-l-4 border-[#ff9900] p-4 shadow-[0_0_15px_rgba(255,153,0,0.1)] hover:bg-[#11112b] transition-colors relative overflow-hidden group">
               <div className="absolute inset-0 bg-[#ff9900]/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
               <div className="flex justify-between items-center mb-2">
@@ -250,7 +238,6 @@ export default function NeonCyber() {
               </div>
             </div>
 
-            {/* Atbash Config Module (Red) */}
             <div className="bg-[#0a0a1f] border-l-4 border-[#ff0000] p-4 flex items-center justify-between shadow-[0_0_15px_rgba(255,0,0,0.1)] hover:bg-[#11112b] transition-colors relative overflow-hidden group">
               <div className="absolute inset-0 bg-[#ff0000]/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
               <div>
@@ -275,7 +262,6 @@ export default function NeonCyber() {
               </div>
             </div>
 
-            {/* ROT13 Config Module (Blue) */}
             <div className="bg-[#0a0a1f] border-l-4 border-[#0099ff] p-4 flex items-center justify-between shadow-[0_0_15px_rgba(0,153,255,0.1)] hover:bg-[#11112b] transition-colors relative overflow-hidden group">
               <div className="absolute inset-0 bg-[#0099ff]/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
               <div>
@@ -312,7 +298,6 @@ export default function NeonCyber() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Output Streams */}
         <div className="space-y-6 overflow-y-auto max-h-[85vh] pr-2 scrollbar-thin scrollbar-thumb-[#00ff9d]/30 scrollbar-track-transparent">
           <div className="flex items-center gap-4 text-[#00ff9d] sticky top-0 bg-[#050510]/95 backdrop-blur z-20 py-2 border-b border-[#00ff9d]/20 mb-4">
             <Wifi className="w-6 h-6 animate-pulse drop-shadow-[0_0_8px_#00ff9d]" />
@@ -328,7 +313,6 @@ export default function NeonCyber() {
           </div>
 
           <div className="grid gap-6">
-            {/* Binary Stream */}
             <div className="bg-[#0a0a1f]/80 p-4 border-l-4 border-[#ff00ff] hover:bg-[#151530] transition-all group shadow-[0_0_20px_rgba(255,0,255,0.1)] hover:shadow-[0_0_30px_rgba(255,0,255,0.2)]">
               <h3 className="text-[#ff00ff] text-xs mb-3 font-bold flex justify-between tracking-widest border-b border-[#ff00ff]/20 pb-1 drop-shadow-[0_0_5px_#ff00ff]">
                 <span>BINARY_STREAM</span>
@@ -339,7 +323,6 @@ export default function NeonCyber() {
               </p>
             </div>
 
-            {/* Hex Stream */}
             <div className="bg-[#0a0a1f]/80 p-4 border-l-4 border-[#00ffff] hover:bg-[#151530] transition-all group shadow-[0_0_20px_rgba(0,255,255,0.1)] hover:shadow-[0_0_30px_rgba(0,255,255,0.2)]">
               <h3 className="text-[#00ffff] text-xs mb-3 font-bold flex justify-between tracking-widest border-b border-[#00ffff]/20 pb-1 drop-shadow-[0_0_5px_#00ffff]">
                 <span>HEX_STREAM</span>
@@ -350,7 +333,6 @@ export default function NeonCyber() {
               </p>
             </div>
 
-            {/* Caesar Stream */}
             <div className="bg-[#0a0a1f]/80 p-4 border-l-4 border-[#ffff00] hover:bg-[#151530] transition-all group shadow-[0_0_20px_rgba(255,255,0,0.1)] hover:shadow-[0_0_30px_rgba(255,255,0,0.2)]">
               <h3 className="text-[#ffff00] text-xs mb-3 font-bold flex justify-between tracking-widest border-b border-[#ffff00]/20 pb-1 drop-shadow-[0_0_5px_#ffff00]">
                 <span>CAESAR_CIPHER</span>
@@ -363,7 +345,6 @@ export default function NeonCyber() {
               </p>
             </div>
 
-            {/* Base64 Stream */}
             <div className="bg-[#0a0a1f]/80 p-4 border-l-4 border-[#ff9900] hover:bg-[#151530] transition-all group shadow-[0_0_20px_rgba(255,153,0,0.1)] hover:shadow-[0_0_30px_rgba(255,153,0,0.2)]">
               <h3 className="text-[#ff9900] text-xs mb-3 font-bold flex justify-between tracking-widest border-b border-[#ff9900]/20 pb-1 drop-shadow-[0_0_5px_#ff9900]">
                 <span>BASE64_ENCODING</span>
@@ -376,7 +357,6 @@ export default function NeonCyber() {
               </p>
             </div>
 
-            {/* Atbash Stream */}
             <div className="bg-[#0a0a1f]/80 p-4 border-l-4 border-[#ff0000] hover:bg-[#151530] transition-all group shadow-[0_0_20px_rgba(255,0,0,0.1)] hover:shadow-[0_0_30px_rgba(255,0,0,0.2)]">
               <h3 className="text-[#ff0000] text-xs mb-3 font-bold flex justify-between tracking-widest border-b border-[#ff0000]/20 pb-1 drop-shadow-[0_0_5px_#ff0000]">
                 <span>ATBASH_SUBSTITUTION</span>
@@ -389,7 +369,6 @@ export default function NeonCyber() {
               </p>
             </div>
 
-            {/* ROT13 Stream */}
             <div className="bg-[#0a0a1f]/80 p-4 border-l-4 border-[#0099ff] hover:bg-[#151530] transition-all group shadow-[0_0_20px_rgba(0,153,255,0.1)] hover:shadow-[0_0_30px_rgba(0,153,255,0.2)]">
               <h3 className="text-[#0099ff] text-xs mb-3 font-bold flex justify-between tracking-widest border-b border-[#0099ff]/20 pb-1 drop-shadow-[0_0_5px_#0099ff]">
                 <span>ROT_ALGORITHM</span>

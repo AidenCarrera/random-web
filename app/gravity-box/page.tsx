@@ -10,7 +10,6 @@ export default function GravityBox() {
   useEffect(() => {
     if (!sceneRef.current) return;
 
-    // Module aliases
     const Engine = Matter.Engine,
       Render = Matter.Render,
       Runner = Matter.Runner,
@@ -21,12 +20,10 @@ export default function GravityBox() {
       Events = Matter.Events,
       Body = Matter.Body;
 
-    // Create engine
     const engine = Engine.create();
-    engineRef.current = engine; // Store reference
+    engineRef.current = engine;
     const world = engine.world;
 
-    // Create renderer
     const render = Render.create({
       element: sceneRef.current,
       engine: engine,
@@ -41,12 +38,11 @@ export default function GravityBox() {
     const width = window.innerWidth;
     const height = window.innerHeight;
 
-    // Safety check loop
     Events.on(engine, "beforeUpdate", () => {
       const allBodies = Composite.allBodies(engine.world);
 
       allBodies.forEach((body) => {
-        if (body.isStatic) return; // Skip walls
+        if (body.isStatic) return;
 
         // If body is outside the screen bounds, reset it
         if (
@@ -64,21 +60,18 @@ export default function GravityBox() {
       });
     });
 
-    // Create bodies
     const wallOptions = { isStatic: true, render: { fillStyle: "#334155" } };
 
     Composite.add(world, [
-      // Top Wall (Thickness 2000px, Center at y=-1000)
       Bodies.rectangle(width / 2, -1000, width, 2000, wallOptions),
-      // Bottom Wall (Thickness 2000px, Center at y=height+1000)
+
       Bodies.rectangle(width / 2, height + 1000, width, 2000, wallOptions),
-      // Left Wall (Thickness 2000px, Center at x=-1000)
+
       Bodies.rectangle(-1000, height / 2, 2000, height, wallOptions),
-      // Right Wall (Thickness 2000px, Center at x=width+1000)
+
       Bodies.rectangle(width + 1000, height / 2, 2000, height, wallOptions),
     ]);
 
-    // Add random shapes
     for (let i = 0; i < 40; i++) {
       const x = Math.random() * (width - 100) + 50;
       const y = Math.random() * (height - 100) + 50;
@@ -102,7 +95,6 @@ export default function GravityBox() {
       Composite.add(world, body);
     }
 
-    // Add mouse control
     const mouse = Mouse.create(render.canvas);
     const mouseConstraint = MouseConstraint.create(engine, {
       mouse: mouse,
@@ -115,12 +107,10 @@ export default function GravityBox() {
     Composite.add(world, mouseConstraint);
     render.mouse = mouse;
 
-    // Run the engine
     Render.run(render);
     const runner = Runner.create();
     Runner.run(runner, engine);
 
-    // Cleanup
     return () => {
       Render.stop(render);
       Runner.stop(runner);
@@ -132,7 +122,7 @@ export default function GravityBox() {
     if (!engineRef.current) return;
     const width = window.innerWidth;
     const x = Math.random() * (width - 100) + 50;
-    const y = 50; // Drop from top
+    const y = 50;
     const size = Math.random() * 40 + 20;
     const color = ["#ff006e", "#8338ec", "#3a86ff", "#fb5607", "#ffbe0b"][
       Math.floor(Math.random() * 5)
@@ -178,14 +168,12 @@ export default function GravityBox() {
 
   return (
     <div ref={sceneRef} className="fixed inset-0 overflow-hidden text-white">
-      {/* Watermark Title */}
       <div className="absolute bottom-6 left-6 pointer-events-none select-none opacity-30 hover:opacity-100 transition-opacity duration-300">
         <h1 className="font-black text-2xl tracking-tighter text-slate-500">
           GRAVITY_SANDBOX
         </h1>
       </div>
 
-      {/* Floating Top Toolbar */}
       <div className="fixed top-8 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl z-50 transition-transform duration-300 hover:scale-105">
         <button
           onClick={addShape}

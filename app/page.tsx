@@ -44,7 +44,6 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black overflow-hidden relative">
-      {/* Background Decor */}
       <div className="absolute inset-0 opacity-20 dark:opacity-10 pointer-events-none">
         <div className="absolute top-20 left-20 w-64 h-64 bg-purple-500 rounded-full blur-[100px]" />
         <div className="absolute bottom-20 right-20 w-80 h-80 bg-blue-500 rounded-full blur-[100px]" />

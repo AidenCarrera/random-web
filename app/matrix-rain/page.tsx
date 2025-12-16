@@ -15,13 +15,11 @@ export default function MatrixRain() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Configuration
     const characters =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%^&*";
     const fontSize = 16;
     let animationId: number;
 
-    // Set canvas size
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
@@ -37,7 +35,6 @@ export default function MatrixRain() {
       }
     };
 
-    // Initial setup
     if (dropsRef.current.length === 0) {
       resizeCanvas();
     }
@@ -63,7 +60,7 @@ export default function MatrixRain() {
       ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.fillStyle = "#0F0"; // Green text
+      ctx.fillStyle = "#0F0";
       ctx.font = `${fontSize}px monospace`;
 
       const drops = dropsRef.current;
@@ -74,7 +71,6 @@ export default function MatrixRain() {
         const x = i * fontSize;
         const y = drops[i] * fontSize;
 
-        // Draw the character
         ctx.fillText(text, x, y);
 
         // Randomly send drop back to top after it crosses screen
@@ -82,7 +78,6 @@ export default function MatrixRain() {
           drops[i] = 0;
         }
 
-        // Increment Y coordinate
         drops[i]++;
       }
     };
@@ -101,7 +96,6 @@ export default function MatrixRain() {
     <div className="relative min-h-screen bg-black overflow-hidden font-mono">
       <canvas ref={canvasRef} className="absolute inset-0" />
 
-      {/* Overlay UI */}
       <div className="absolute top-8 left-8 z-10 select-none">
         <h1 className="text-4xl font-bold text-[#0F0] tracking-widest drop-shadow-[0_0_10px_#0F0] animate-pulse">
           MATRIX_SYSTEM

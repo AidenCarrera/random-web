@@ -56,13 +56,10 @@ export default function EmojiRain() {
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Add new drops
       if (Math.random() < 0.2) {
-        // spawn rate
         dropsRef.current.push(createDrop());
       }
 
-      // Update and draw drops
       for (let i = dropsRef.current.length - 1; i >= 0; i--) {
         const drop = dropsRef.current[i];
         drop.y += drop.speed;

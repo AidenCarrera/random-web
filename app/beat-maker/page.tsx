@@ -55,7 +55,6 @@ class AudioEngine {
     this.masterMeter = new Tone.Meter();
     this.master.connect(this.masterMeter);
 
-    // Initialize Tracks
     INITIAL_TRACKS.forEach((t) => this.initTrack(t.id));
   }
 
@@ -254,7 +253,6 @@ class AudioEngine {
 const engine = new AudioEngine();
 
 export default function BeatMaker() {
-  // --- UI State ---
   const [tracks, setTracks] = useState(INITIAL_TRACKS);
 
   const [grid, setGrid] = useState<boolean[][]>(() =>
@@ -268,7 +266,6 @@ export default function BeatMaker() {
   const [tempo, setTempo] = useState(120);
   const [tempoInput, setTempoInput] = useState("120"); // Buffer for typing
 
-  // Sync tempoInput when tempo changes (e.g. preset load)
   useEffect(() => {
     setTempoInput(tempo.toString());
   }, [tempo]);
@@ -305,16 +302,13 @@ export default function BeatMaker() {
   const [solos, setSolos] = useState<Record<string, boolean>>({});
   const [swing, setSwing] = useState(50);
 
-  // Painting State
   const isPainting = useRef(false);
   const paintState = useRef(false); // true = add, false = remove
 
-  // Tone.js Refs
   const seqRef = useRef<Tone.Sequence | null>(null);
   const meterRaf = useRef<number | null>(null);
 
   useEffect(() => {
-    // Start metering loop
     const updateMeters = () => {
       setMeterValues(engine.getMeterValues());
       meterRaf.current = requestAnimationFrame(updateMeters);
@@ -399,28 +393,22 @@ export default function BeatMaker() {
     }
   };
 
-  // --- Initialization ---
   useEffect(() => {
-    // Cleanup on unmount
     return () => {
       if (seqRef.current) seqRef.current.dispose();
       Tone.Transport.stop();
     };
   }, []);
 
-  // --- Sequence Logic ---
   useEffect(() => {
     if (seqRef.current) seqRef.current.dispose();
 
-    // Create a new sequence
     const seq = new Tone.Sequence(
       (time, step) => {
-        // UI Update
         Tone.Draw.schedule(() => {
           setCurrentStep(step);
         }, time);
 
-        // Audio Trigger
         tracks.forEach((track, trackIdx) => {
           if (grid[trackIdx] && grid[trackIdx][step]) {
             engine.trigger(track.id, time);
@@ -435,7 +423,6 @@ export default function BeatMaker() {
     seqRef.current = seq;
   }, [grid, tracks]);
 
-  // --- Transport Effects ---
   useEffect(() => {
     Tone.Transport.bpm.value = tempo;
   }, [tempo]);
@@ -488,7 +475,6 @@ export default function BeatMaker() {
   };
 
   const handleAddTrack = () => {
-    // Determine next track to add
     const currentCount = tracks.length;
     const initialCount = INITIAL_TRACKS.length;
     const nextIndex = currentCount - initialCount;
@@ -496,19 +482,15 @@ export default function BeatMaker() {
     if (nextIndex < EXTRA_TRACKS.length) {
       const newTrack = EXTRA_TRACKS[nextIndex];
 
-      // Init audio
       engine.addTrack(newTrack.id);
 
-      // Update state
       setTracks((prev) => [...prev, newTrack]);
       setGrid((prev) => [...prev, Array(STEPS).fill(false)]);
 
-      // Sync (Volume check)
       setVolumes((prev) => ({ ...prev, [newTrack.id]: -6 }));
     }
   };
 
-  // --- Painting Logic ---
   // Memoized to prevent SequencerGrid re-renders on volume change
   const updateStep = useCallback(
     (trackIdx: number, stepIdx: number, val: boolean) => {
@@ -524,8 +506,8 @@ export default function BeatMaker() {
   const handleMouseDown = useCallback(
     (trackIdx: number, stepIdx: number) => {
       isPainting.current = true;
-      // We need current grid value. Since `grid` is a dependency, this function recreates when grid changes.
-      // But it WON'T recreate when 'volumes' changes.
+      // Derive paint state from current grid value.
+      // Callback depends on `grid`, not `volumes`.
       const newState = !grid[trackIdx][stepIdx];
       paintState.current = newState;
       updateStep(trackIdx, stepIdx, newState);
@@ -683,7 +665,6 @@ export default function BeatMaker() {
           Mixer
         </h2>
         <div className="flex justify-start lg:justify-center gap-2 md:gap-8 px-4 overflow-x-auto pb-4 w-full">
-          {/* Track Channels */}
           {tracks.map((track) => {
             const level = Math.max(-60, meterValues[track.id] || -60);
             const height = ((level + 60) / 60) * 100; // Map -60..0 to 0..100%
@@ -746,7 +727,7 @@ export default function BeatMaker() {
                     >
                       <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-zinc-900" />
                     </div>
-                    {/* Track Line */}
+
                     <div className="absolute inset-x-[14px] top-0 bottom-0 bg-zinc-800 rounded-full w-1" />
                   </div>
 

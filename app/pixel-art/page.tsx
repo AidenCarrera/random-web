@@ -55,7 +55,7 @@ export default function PixelArt() {
   const [grid, setGrid] = useState<string[]>(
     Array(GRID_SIZE * GRID_SIZE).fill(DEFAULT_COLOR)
   );
-  // History Management
+
   const [history, setHistory] = useState<string[][]>([
     Array(GRID_SIZE * GRID_SIZE).fill(DEFAULT_COLOR),
   ]);
@@ -66,7 +66,6 @@ export default function PixelArt() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [showGrid, setShowGrid] = useState(true);
 
-  // Helper to update grid with history
   const updateGrid = (newGrid: string[]) => {
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(newGrid);
@@ -92,7 +91,6 @@ export default function PixelArt() {
     }
   }, [history, historyIndex]);
 
-  // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "z") {
@@ -192,11 +190,7 @@ export default function PixelArt() {
   };
 
   const handleTouch = (e: React.TouchEvent) => {
-    // Prevent default to stop scrolling
-    // e.preventDefault(); // Moved to touch-action CSS for better performance, but strict prevention might be needed for some browsers.
-    // Actually, explicit preventDefault is often safer for drawing apps.
-    // However, passive listeners are default in React. capturing event might be needed.
-    // For now, relies on touch-action: none.
+    // Scrolling disabled via `touch-action: none` in CSS.
 
     const touch = e.touches[0];
     if (!touch) return;
