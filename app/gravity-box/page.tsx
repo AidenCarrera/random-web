@@ -174,6 +174,7 @@ export default function GravityBox() {
         </h1>
       </div>
 
+      {/* Floating Top Toolbar */}
       <div className="fixed top-8 left-1/2 -translate-x-1/2 flex items-center gap-4 px-6 py-3 bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl z-50 transition-transform duration-300 hover:scale-105">
         <button
           onClick={addShape}

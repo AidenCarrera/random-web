@@ -305,6 +305,7 @@ export default function OloTerminal() {
             : "border-[#414868] bg-[#1a1b26] shadow-2xl"
         } p-6 rounded-lg min-h-[80vh] flex flex-col`}
       >
+        {/* Header / Window Controls */}
         <div
           className={`mb-4 flex items-center justify-between border-b ${
             isMatrixMode ? "border-[#00FF00]" : "border-[#414868]"
@@ -323,6 +324,7 @@ export default function OloTerminal() {
           </div>
         </div>
 
+        {/* Terminal Output */}
         <div
           className="flex-1 overflow-y-auto mb-4 scrollbar-thin scrollbar-thumb-current scrollbar-track-transparent pr-2 font-bold"
           onClick={() => inputRef.current?.focus()}
@@ -338,6 +340,7 @@ export default function OloTerminal() {
           <div ref={endRef} />
         </div>
 
+        {/* Input Area */}
         <div className="flex items-center gap-2 text-lg">
           <span
             className={`${isMatrixMode ? "text-[#00FF00]" : "text-[#7aa2f7]"}`}
@@ -362,6 +365,7 @@ export default function OloTerminal() {
         </div>
       </div>
 
+      {/* Global Styles for Matrix Animation */}
       <style jsx global>{`
         @keyframes matrix-drop {
           0% {

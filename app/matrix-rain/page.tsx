@@ -96,6 +96,7 @@ export default function MatrixRain() {
     <div className="relative min-h-screen bg-black overflow-hidden font-mono">
       <canvas ref={canvasRef} className="absolute inset-0" />
 
+      {/* Overlay UI */}
       <div className="absolute top-8 left-8 z-10 select-none">
         <h1 className="text-4xl font-bold text-[#0F0] tracking-widest drop-shadow-[0_0_10px_#0F0] animate-pulse">
           MATRIX_SYSTEM
