@@ -27,6 +27,17 @@ const PAGES = [
   "/text-scramble",
   "/emoji-rain",
   "/glass-morphism",
+  // Phase 3
+  "/ascii-vision",
+  "/pad-synth",
+  "/typing-racer",
+  "/particle-collider",
+  "/mandala-maker",
+  "/morse-telegraph",
+  "/arcana-tarot",
+  "/sorting-race",
+  "/style-pet",
+  "/solar-system",
 ];
 
 export default function Home() {
