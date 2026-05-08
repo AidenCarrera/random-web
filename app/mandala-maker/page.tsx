@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
-import { Download, Trash2, Palette } from "lucide-react";
+import { Download, Trash2, Palette, Eye, EyeOff } from "lucide-react";
 
 export default function MandalaMaker() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -10,6 +10,7 @@ export default function MandalaMaker() {
   const [lineWidth, setLineWidth] = useState(2);
   const [isDrawing, setIsDrawing] = useState(false);
   const [rainbowMode, setRainbowMode] = useState(false);
+  const [showUI, setShowUI] = useState(true);
 
   // For rainbow cycle
   const hueRef = useRef(0);
@@ -131,8 +132,21 @@ export default function MandalaMaker() {
         className="absolute inset-0 cursor-crosshair"
       />
 
+      {/* Toggle UI Button */}
+      <button
+        onClick={() => setShowUI(!showUI)}
+        className="absolute top-4 right-4 z-50 p-3 bg-gray-900/50 backdrop-blur-md text-white/50 hover:text-white hover:bg-gray-900/80 rounded-xl transition-all border border-white/10 shadow-lg"
+        title={showUI ? "Hide Controls" : "Show Controls"}
+      >
+        {showUI ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+      </button>
+
       {/* Controls */}
-      <div className="absolute top-0 left-0 w-full p-4 flex flex-wrap justify-center items-start gap-4 pointer-events-none">
+      <div
+        className={`absolute top-0 left-0 w-full p-4 flex flex-wrap justify-center items-start gap-4 pointer-events-none transition-opacity duration-300 ${
+          showUI ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+      >
         <div className="bg-gray-900/80 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-2xl flex flex-wrap items-center gap-6 pointer-events-auto">
           <div className="flex flex-col gap-2">
             <label className="text-xs text-white/50 font-bold uppercase">
