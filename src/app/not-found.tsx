@@ -57,14 +57,14 @@ export default function NotFound() {
 
   return (
     <main
-      className="flex min-h-[100dvh] flex-col items-center justify-center bg-black px-6 text-center text-white"
+      className="flex min-h-dvh flex-col items-center justify-center bg-black px-6 text-center text-white"
       style={{
         fontFamily:
           'system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
       }}
     >
       <div>
-        <h1 className="m-[0_20px_0_0] inline-block border-r border-white/30 pr-[23px] align-top text-3xl font-medium leading-14 sm:m-[0_24px_0_0] sm:pr-6 sm:text-[2.375rem] sm:leading-16">
+        <h1 className="m-[0_20px_0_0] inline-block border-r border-white/30 pr-5.75 align-top text-3xl font-medium leading-14 sm:m-[0_24px_0_0] sm:pr-6 sm:text-[2.375rem] sm:leading-16">
           404
         </h1>
         <div className="inline-block">

@@ -94,7 +94,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative mx-auto flex min-h-screen max-w-7xl items-start px-3 pb-20 sm:px-8 lg:px-12">
+      <section className="relative mx-auto flex min-h-screen max-w-7xl items-start px-3 pb-10 sm:px-8 lg:px-12">
         <div className="relative w-full pt-8">
           <div className="relative rounded-4xl border border-white/6 bg-white/1.5 p-2 shadow-[0_12px_28px_rgba(0,0,0,0.2)] sm:p-4">
             <div
@@ -169,6 +169,18 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <footer className="relative mx-auto flex max-w-7xl flex-col items-center gap-2 px-6 pb-10 text-center sm:flex-row sm:justify-between sm:px-8 lg:px-12">
+        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-white/35">
+          © {new Date().getFullYear()} Random Webs
+        </p>
+        <Link
+          href="/privacy"
+          className="text-[0.65rem] uppercase tracking-[0.22em] text-white/45 transition-colors duration-300 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+        >
+          Privacy
+        </Link>
+      </footer>
     </main>
   );
 }
