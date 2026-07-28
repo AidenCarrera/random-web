@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Download, Upload } from "lucide-react";
 import { ExportPreviewModal } from "@/components/ExportPreviewModal";
-import { canvasToBlob, downloadCanvasPng } from "@/lib/canvasExport";
+import { canvasToBlob } from "@/lib/canvasExport";
 
 import styles from "./styles.module.css";
 
@@ -157,7 +157,7 @@ export default function AsciiCamera() {
     return canvas;
   };
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     const canvas = renderAsciiToCanvas();
     if (!canvas) return;
 
@@ -169,15 +169,8 @@ export default function AsciiCamera() {
     try {
       setPreviewImage(canvas.toDataURL("image/png"));
       setPreviewFileName(fileName);
-
-      if (!isTouchDevice) {
-        await downloadCanvasPng(canvas, fileName);
-      }
-    } catch {
-      const fallbackLink = document.createElement("a");
-      fallbackLink.download = fileName;
-      fallbackLink.href = canvas.toDataURL("image/png");
-      fallbackLink.click();
+    } catch (error) {
+      console.error("Failed to generate ASCII export preview:", error);
     }
   };
 
@@ -363,7 +356,7 @@ export default function AsciiCamera() {
 
       {previewImage ? (
         <ExportPreviewModal
-          description="Your PNG downloaded automatically. You can also save it manually or share it here."
+          description="Preview your ASCII art, then download the PNG or share it here."
           fileName={previewFileName}
           imageAlt="ASCII export preview"
           imageSrc={previewImage}

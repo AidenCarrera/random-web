@@ -40,7 +40,7 @@ type ExportPreviewModalProps = {
 };
 
 export function ExportPreviewModal({
-  description = "Your PNG downloaded automatically. You can also save it manually or share it here.",
+  description = "Preview your PNG, then download it or share it here.",
   emailBody = "Check out this Hypno Spiral export:",
   emailSubject = "Hypno Spiral export",
   facebookHashtag = "#HypnoSpiral",
@@ -115,7 +115,7 @@ export function ExportPreviewModal({
                   onClick={onSaveImage}
                   className="flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-medium text-black transition hover:bg-white/90"
                 >
-                  Save Image
+                  Download PNG
                 </button>
               ) : (
                 <a

@@ -19,8 +19,6 @@ import {
 } from "react";
 
 import { ExportPreviewModal } from "@/components/ExportPreviewModal";
-import { downloadBlob } from "@/lib/canvasExport";
-
 import {
   FluidEngine,
   type FluidColorPreset,
@@ -431,9 +429,6 @@ export default function FluidSimulationPage() {
       }
       previewUrlRef.current = imageSrc;
       setSnapshot({ blob, fileName, imageSrc });
-      if (!isTouchDevice) {
-        downloadBlob(blob, fileName);
-      }
       setCaptureState("saved");
     } catch {
       setCaptureState("error");
@@ -446,7 +441,7 @@ export default function FluidSimulationPage() {
       () => setCaptureState("idle"),
       2_200,
     );
-  }, [captureState, isTouchDevice]);
+  }, [captureState]);
 
   const closePreview = useCallback(() => {
     if (previewUrlRef.current) {
@@ -744,7 +739,7 @@ export default function FluidSimulationPage() {
           description={
             isTouchDevice
               ? "Save the PNG to your device or share Fluid Simulation with others."
-              : "Your PNG downloaded automatically. Download it again or share Fluid Simulation."
+              : "Preview the snapshot, then download the PNG or share Fluid Simulation."
           }
           emailBody="Shape your own particle flow with Fluid Simulation:"
           emailSubject="Fluid Simulation snapshot"

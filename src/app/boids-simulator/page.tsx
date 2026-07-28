@@ -19,8 +19,6 @@ import {
 } from "lucide-react";
 
 import { ExportPreviewModal } from "@/components/ExportPreviewModal";
-import { downloadBlob } from "@/lib/canvasExport";
-
 import {
   BoidsCanvas,
   type BoidsCanvasHandle,
@@ -240,9 +238,6 @@ export default function BoidsSimulatorPage() {
     if (!nextSnapshot) return;
 
     setSnapshot(nextSnapshot);
-    if (!isTouchDevice) {
-      downloadBlob(nextSnapshot.blob, nextSnapshot.fileName);
-    }
   };
 
   const saveSnapshot = async () => {
@@ -522,7 +517,7 @@ export default function BoidsSimulatorPage() {
           description={
             isTouchDevice
               ? "Save your flock image or share the simulator with others."
-              : "Your PNG downloaded automatically. You can download it again or share the simulator."
+              : "Preview your flock, then download the PNG or share the simulator."
           }
           emailBody="Create your own living flock with the Boids Simulator:"
           emailSubject="Boids Simulator snapshot"

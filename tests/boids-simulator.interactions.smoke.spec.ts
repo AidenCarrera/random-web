@@ -140,25 +140,29 @@ test.describe("Boids Simulator interactions", () => {
     expect(getFrameScale(BASE_FRAME_DURATION / 2)).toBeCloseTo(0.5, 5);
   });
 
-  test("downloads a snapshot and opens the shared export preview", async ({
+  test("previews a snapshot before downloading it", async ({
     page,
   }) => {
-    const downloadPromise = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Download PNG" }).click();
-    const download = await downloadPromise;
+    let downloadCount = 0;
+    page.on("download", () => {
+      downloadCount += 1;
+    });
 
-    expect(download.suggestedFilename()).toMatch(/^boids-simulator-\d+\.png$/);
+    await page.getByRole("button", { name: "Download PNG" }).click();
+
     await expect(
       page.getByRole("heading", { name: "Boids snapshot" }),
     ).toBeVisible();
+    expect(downloadCount).toBe(0);
     await expect(
       page.getByRole("img", { name: "Boids Simulator snapshot" }),
     ).toBeVisible();
     await expect(page.getByText("Share your flock")).toBeVisible();
     await expect(page.getByRole("button", { name: "Copy Link" })).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: "Download PNG" }),
-    ).toHaveAttribute("download", download.suggestedFilename());
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Download PNG" }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^boids-simulator-\d+\.png$/);
 
     await page.getByRole("button", { name: "Close export preview" }).click();
     await expect(

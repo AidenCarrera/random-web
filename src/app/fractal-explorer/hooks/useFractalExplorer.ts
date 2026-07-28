@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { MouseEvent, PointerEvent, WheelEvent } from "react";
+import { canvasToBlob } from "@/lib/canvasExport";
 import { MAX_RENDER_ITERATIONS, MAX_ZOOM } from "../constants";
 import type {
   ComplexPoint,
@@ -12,6 +13,39 @@ import type {
 } from "../types";
 import { useFractalAudio } from "./useFractalAudio";
 import { useFractalRenderer } from "./useFractalRenderer";
+
+type ExportSnapshot = {
+  blob: Blob;
+  fileName: string;
+  imageSrc: string;
+};
+
+function subscribeToTouchCapability(onStoreChange: () => void) {
+  const mediaQuery = window.matchMedia("(pointer: coarse)");
+  mediaQuery.addEventListener("change", onStoreChange);
+  return () => mediaQuery.removeEventListener("change", onStoreChange);
+}
+
+function getTouchCapabilitySnapshot() {
+  return (
+    window.matchMedia("(pointer: coarse)").matches ||
+    navigator.maxTouchPoints > 0
+  );
+}
+
+const getServerTouchCapabilitySnapshot = () => false;
+
+function subscribeToLocation(onStoreChange: () => void) {
+  window.addEventListener("popstate", onStoreChange);
+  window.addEventListener("hashchange", onStoreChange);
+  return () => {
+    window.removeEventListener("popstate", onStoreChange);
+    window.removeEventListener("hashchange", onStoreChange);
+  };
+}
+
+const getShareUrlSnapshot = () => window.location.href;
+const getServerShareUrlSnapshot = () => "";
 
 export function useFractalExplorer() {
   // React State for Control Panels and Indicators
@@ -38,6 +72,18 @@ export function useFractalExplorer() {
   const [showCoordinates, setShowCoordinates] = useState<boolean>(true);
   const [showWelcomePrompt, setShowWelcomePrompt] = useState<boolean>(true);
   const [activeLandmarkIndex, setActiveLandmarkIndex] = useState<number>(-1);
+  const [exportSnapshot, setExportSnapshot] =
+    useState<ExportSnapshot | null>(null);
+  const isTouchDevice = useSyncExternalStore(
+    subscribeToTouchCapability,
+    getTouchCapabilitySnapshot,
+    getServerTouchCapabilitySnapshot,
+  );
+  const shareUrl = useSyncExternalStore(
+    subscribeToLocation,
+    getShareUrlSnapshot,
+    getServerShareUrlSnapshot,
+  );
 
   // Interactive interaction states
   const isDraggingRef = useRef<boolean>(false);
@@ -57,6 +103,7 @@ export function useFractalExplorer() {
   const isAnimatingRef = useRef<boolean>(false);
   const recentTouchInteractionRef = useRef<boolean>(false);
   const touchResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exportObjectUrlRef = useRef<string | null>(null);
 
   const renderer = useFractalRenderer({ isAnimatingRef });
   const {
@@ -522,17 +569,64 @@ export function useFractalExplorer() {
     triggerProgressiveRender();
   };
 
-  // Download high-resolution PNG of canvas
-  const downloadFractalImage = () => {
+  // Prepare a high-resolution PNG for the shared export preview.
+  const downloadFractalImage = async () => {
     const cpuCanvas = cpuCanvasRef.current;
     const canvas =
       cpuCanvas?.style.opacity === "1" ? cpuCanvas : canvasRef.current;
     if (!canvas) return;
 
-    const link = document.createElement("a");
-    link.download = `fractal-${currentMode}-${currentPalette}-${Date.now()}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+    try {
+      const blob = await canvasToBlob(canvas);
+      if (exportObjectUrlRef.current) {
+        URL.revokeObjectURL(exportObjectUrlRef.current);
+      }
+
+      const imageSrc = URL.createObjectURL(blob);
+      exportObjectUrlRef.current = imageSrc;
+      setExportSnapshot({
+        blob,
+        fileName: `fractal-${currentMode}-${currentPalette}-${Date.now()}.png`,
+        imageSrc,
+      });
+    } catch (error) {
+      console.error("Failed to prepare fractal export preview:", error);
+    }
+  };
+
+  const closeExportPreview = () => {
+    if (exportObjectUrlRef.current) {
+      URL.revokeObjectURL(exportObjectUrlRef.current);
+      exportObjectUrlRef.current = null;
+    }
+    setExportSnapshot(null);
+  };
+
+  const saveExportImage = async () => {
+    if (!exportSnapshot) return;
+
+    try {
+      const pngFile = new File(
+        [exportSnapshot.blob],
+        exportSnapshot.fileName,
+        { type: "image/png" },
+      );
+      const canShareFile =
+        "share" in navigator &&
+        "canShare" in navigator &&
+        navigator.canShare({ files: [pngFile] });
+
+      if (canShareFile) {
+        await navigator.share({
+          files: [pngFile],
+          title: "Fractal Explorer",
+          text: "Save this Fractal Explorer snapshot.",
+        });
+        return;
+      }
+
+      window.open(exportSnapshot.imageSrc, "_blank", "noopener,noreferrer");
+    } catch {}
   };
 
   // Adjust parameters when slider inputs change
@@ -568,6 +662,9 @@ export function useFractalExplorer() {
   useEffect(
     () => () => {
       if (touchResetTimerRef.current) clearTimeout(touchResetTimerRef.current);
+      if (exportObjectUrlRef.current) {
+        URL.revokeObjectURL(exportObjectUrlRef.current);
+      }
     },
     [],
   );
@@ -576,6 +673,7 @@ export function useFractalExplorer() {
     activeLandmarkIndex,
     audioLoadingProgress,
     canvasRef,
+    closeExportPreview,
     cpuCanvasRef,
     currentIterations,
     currentMode,
@@ -597,19 +695,23 @@ export function useFractalExplorer() {
     isAudioEnabled,
     isAudioLoading,
     isCpuRenderActive,
+    isTouchDevice,
     isJuliaFrozen,
     isSettingsOpen,
     juliaCDisplay,
     juliaCLocked,
     miniCanvasRef,
     resetJuliaSeedToLocked,
+    saveExportImage,
     setIsAudioEnabled,
     setIsJuliaFrozen,
     setIsSettingsOpen,
     setShowCoordinates,
     setShowWelcomePrompt,
+    shareUrl,
     showCoordinates,
     showWelcomePrompt,
+    exportSnapshot,
     toggleAudio,
     uiCoords,
     zoomLevel,

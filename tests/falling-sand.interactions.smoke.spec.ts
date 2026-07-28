@@ -280,23 +280,32 @@ test.describe("Falling Sand interactions", () => {
     await expect(page.getByText("Saved creation loaded.")).toBeVisible();
   });
 
-  test("downloads a PNG and opens the shared export preview", async ({
+  test("previews a PNG before downloading it", async ({
     page,
   }) => {
-    const downloadPromise = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Download PNG" }).click();
-    const download = await downloadPromise;
+    let downloadCount = 0;
+    page.on("download", () => {
+      downloadCount += 1;
+    });
 
-    expect(download.suggestedFilename()).toMatch(
-      /^falling-sand-\d{4}-\d{2}-\d{2}\.png$/,
-    );
+    await page.getByRole("button", { name: "Download PNG" }).click();
+
     await expect(
       page.getByRole("heading", { name: "Your pocket world" }),
     ).toBeVisible();
+    expect(downloadCount).toBe(0);
     await expect(page.getByText("Share your world")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "X", exact: true }),
     ).toBeVisible();
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Download PNG" }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(
+      /^falling-sand-\d{4}-\d{2}-\d{2}\.png$/,
+    );
+
     await page.getByRole("button", { name: "Close export preview" }).click();
     await expect(
       page.getByRole("heading", { name: "Your pocket world" }),

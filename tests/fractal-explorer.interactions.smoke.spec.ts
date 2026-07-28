@@ -63,4 +63,29 @@ test.describe("fractal explorer interactions", () => {
       page.getByRole("button", { name: "Seed Locked" }),
     ).toBeVisible();
   });
+
+  test("previews a fractal before downloading it", async ({ page }) => {
+    let downloadCount = 0;
+    page.on("download", () => {
+      downloadCount += 1;
+    });
+
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await page.getByRole("button", { name: "Export Fractal PNG" }).click();
+
+    await expect(
+      page.getByRole("heading", { name: "Fractal snapshot" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("img", { name: "Fractal Explorer export preview" }),
+    ).toBeVisible();
+    expect(downloadCount).toBe(0);
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Download PNG" }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(
+      /^fractal-mandelbrot-Neon-\d+\.png$/,
+    );
+  });
 });

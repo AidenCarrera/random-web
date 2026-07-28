@@ -58,7 +58,7 @@ export default function FallingSandPage() {
     showToast,
   );
   const { closeSnapshot, exportWorld, saveSnapshot, snapshot } =
-    useSnapshotExport(canvasRef, isTouchDevice, showToast);
+    useSnapshotExport(canvasRef, showToast);
   const togglePaused = useCallback(() => setPaused((current) => !current), []);
   useKeyboardControls(setMaterial, togglePaused);
 
@@ -141,7 +141,7 @@ export default function FallingSandPage() {
           description={
             isTouchDevice
               ? "Save the PNG to your device or share the simulator with friends."
-              : "Your PNG downloaded automatically. Download it again or share the simulator."
+              : "Preview your world, then download the PNG or share the simulator."
           }
           emailBody="I made this world in the Falling Sand simulator:"
           emailSubject="My Falling Sand creation"

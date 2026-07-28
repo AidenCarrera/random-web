@@ -1,8 +1,6 @@
 import type { RefObject } from "react";
 import { useCallback, useEffect, useState } from "react";
 
-import { downloadBlob } from "@/lib/canvasExport";
-
 import type {
   FallingSandCanvasHandle,
   FallingSandSnapshot,
@@ -13,7 +11,6 @@ type ShowToast = (message: string, tone: ToastState["tone"]) => void;
 
 export function useSnapshotExport(
   canvasRef: RefObject<FallingSandCanvasHandle | null>,
-  isTouchDevice: boolean,
   showToast: ShowToast,
 ) {
   const [snapshot, setSnapshot] = useState<FallingSandSnapshot | null>(null);
@@ -40,15 +37,13 @@ export function useSnapshotExport(
         if (current) URL.revokeObjectURL(current.imageSrc);
         return nextSnapshot;
       });
-      if (!isTouchDevice)
-        downloadBlob(nextSnapshot.blob, nextSnapshot.fileName);
     } catch (error) {
       showToast(
         error instanceof Error ? error.message : "Unable to export this world.",
         "error",
       );
     }
-  }, [canvasRef, isTouchDevice, showToast]);
+  }, [canvasRef, showToast]);
 
   const saveSnapshot = useCallback(async () => {
     if (!snapshot) return;
