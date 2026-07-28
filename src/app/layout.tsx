@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
-import { SITE_URL } from "@/lib/websites";
+import { SITE_URL } from "@/lib/site-url";
 
 const geistSans = localFont({
   src: "../../public/fonts/geist-latin.woff2",

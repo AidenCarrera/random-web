@@ -447,36 +447,4 @@ export const WEBSITES: WebsiteEntry[] = [
 
 export const RANDOM_WEBSITE_PATHS = WEBSITES.map((website) => website.path);
 
-const DEFAULT_SITE_URL = "https://random-webs.vercel.app";
-
-function getSiteUrl() {
-  const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL;
-  let url: URL;
-
-  try {
-    url = new URL(configuredUrl);
-  } catch {
-    throw new Error(
-      `NEXT_PUBLIC_SITE_URL must be a valid absolute URL. Received: '${configuredUrl}'.`,
-    );
-  }
-
-  if (
-    !["http:", "https:"].includes(url.protocol) ||
-    url.username ||
-    url.password ||
-    url.pathname !== "/" ||
-    url.search ||
-    url.hash
-  ) {
-    throw new Error(
-      "NEXT_PUBLIC_SITE_URL must contain only an HTTP(S) origin without credentials, a path, query parameters, or a hash.",
-    );
-  }
-
-  return url.origin;
-}
-
-export const SITE_URL = getSiteUrl();
-
 export const SITE_LAST_MODIFIED = "2026-07-15";

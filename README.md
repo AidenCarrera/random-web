@@ -40,10 +40,10 @@ Then open `http://<your-computer's-local-IP>:3000` on the other device. Your fir
 
 For local metadata and origin settings, copy `.env.example` to `.env.local`.
 
-| Variable               | Use                                                                                                                        |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_URL` | Base URL for metadata, canonical links, the sitemap, and robots output. Use `http://localhost:3000` for local development. |
-| `ALLOWED_DEV_ORIGINS`  | Optional comma-separated origins allowed by the Next.js development server.                                                |
+| Variable              | Use                                                                                                                                          |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SITE_URL`            | Base URL for metadata, canonical links, the sitemap, and robots output. Server-side only. Use `http://localhost:3000` for local development. |
+| `ALLOWED_DEV_ORIGINS` | Optional comma-separated origins allowed by the Next.js development server.                                                                  |
 
 ## Commands
 
