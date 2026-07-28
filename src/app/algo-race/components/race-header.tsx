@@ -3,34 +3,25 @@
 import { Pause, Play, RotateCcw } from "lucide-react";
 
 import { SIZE_OPTIONS } from "../config";
-import { SORT_NAMES } from "../lib/algorithms";
 
 type RaceHeaderProps = {
   arraySize: number;
   isPaused: boolean;
   isPreparing: boolean;
   isRunning: boolean;
-  prepared: number;
+  prepareProgress: number;
   onSizeChange: (size: number) => void;
   onToggle: () => void;
   onReset: () => void;
 };
 
-/** Preparation runs two passes over every algorithm: timing, then frame capture. */
 function StartButtonLabel({
   isPaused,
   isPreparing,
   isRunning,
-  prepared,
-}: Pick<
-  RaceHeaderProps,
-  "isPaused" | "isPreparing" | "isRunning" | "prepared"
->) {
-  if (isPreparing) {
-    return prepared < SORT_NAMES.length
-      ? `TIMING ${prepared}/${SORT_NAMES.length}`
-      : `FRAMES ${prepared - SORT_NAMES.length}/${SORT_NAMES.length}`;
-  }
+}: Pick<RaceHeaderProps, "isPaused" | "isPreparing" | "isRunning">) {
+  // Preparation happens ahead of Start, so this only shows while the cache is cold.
+  if (isPreparing) return "Preparing race…";
 
   if (isRunning && !isPaused) {
     return (
@@ -60,7 +51,7 @@ export function RaceHeader({
   isPaused,
   isPreparing,
   isRunning,
-  prepared,
+  prepareProgress,
   onSizeChange,
   onToggle,
   onReset,
@@ -99,14 +90,19 @@ export function RaceHeader({
         <button
           onClick={onToggle}
           disabled={isPreparing}
-          className="flex min-w-24 items-center justify-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-bold text-white shadow-md transition-all hover:bg-slate-700 disabled:opacity-60"
+          className="relative flex min-w-24 items-center justify-center gap-1.5 overflow-hidden rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-bold text-white shadow-md transition-all hover:bg-slate-700 disabled:opacity-60"
         >
           <StartButtonLabel
             isPaused={isPaused}
             isPreparing={isPreparing}
             isRunning={isRunning}
-            prepared={prepared}
           />
+          {isPreparing && (
+            <span
+              className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-white/70 transition-transform duration-200"
+              style={{ transform: `scaleX(${prepareProgress})` }}
+            />
+          )}
         </button>
         <button
           onClick={() => onReset()}

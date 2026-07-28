@@ -13,7 +13,7 @@ export function AlgoRace() {
     isPaused,
     isPreparing,
     isRunning,
-    prepared,
+    prepareProgress,
     raceComplete,
     raceStats,
     registerCanvas,
@@ -29,7 +29,7 @@ export function AlgoRace() {
         isPaused={isPaused}
         isPreparing={isPreparing}
         isRunning={isRunning}
-        prepared={prepared}
+        prepareProgress={prepareProgress}
         onSizeChange={changeArraySize}
         onToggle={toggleRace}
         onReset={reset}

@@ -2,55 +2,35 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { DEFAULT_SIZE, MIN_PLAYBACK_MS, RACE_DURATION_MS } from "../config";
-import { ALGORITHMS, SORT_NAMES, createSortRecord } from "../lib/algorithms";
-import { measureExecutionMs } from "../lib/benchmark";
-import { captureFrames, frameAt, frameBudgetFor } from "../lib/frames";
-import type { FrameStrip, RaceStat, SortName } from "../types";
-import { generateRandomData } from "../utils/dataset";
+import { DEFAULT_SIZE } from "../config";
+import { SORT_NAMES } from "../lib/algorithms";
+import { frameAt } from "../lib/frames";
+import type { PreparedRace, RaceStat, SortName } from "../types";
+import { useRacePreparation } from "./use-race-preparation";
 import { useSortCanvases } from "./use-sort-canvases";
 
-const nextFrame = () =>
-  new Promise((r) => requestAnimationFrame(() => r(null)));
-
-/** Drives measurement, frame capture and scaled replay for the whole grid. */
+/**
+ * Replays a race that was benchmarked and recorded ahead of time. All the work
+ * happens in {@link useRacePreparation}, so Start begins painting immediately.
+ */
 export function useAlgoRace() {
   const [arraySize, setArraySize] = useState(DEFAULT_SIZE);
 
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [prepared, setPrepared] = useState(0);
-  const [isPreparing, setIsPreparing] = useState(false);
   const [raceStats, setRaceStats] = useState<RaceStat[]>([]);
-  const [seedVersion, setSeedVersion] = useState(0);
 
   const { registerCanvas, paint, repaintAll } = useSortCanvases();
+  const { input, prepared, isPreparing, progress, refresh, prefetch } =
+    useRacePreparation(DEFAULT_SIZE);
 
-  const baseDataRef = useRef<number[]>([]);
-  const framesRef = useRef<Record<SortName, FrameStrip | null>>(
-    createSortRecord(() => null),
-  );
-  const executionRef = useRef<Record<SortName, number>>(
-    createSortRecord(() => 0),
-  );
-  const playbackRef = useRef<Record<SortName, number>>(
-    createSortRecord(() => 0),
-  );
-  const playbackOrderRef = useRef<SortName[]>([...SORT_NAMES]);
-
+  const activeRaceRef = useRef<PreparedRace | null>(null);
   const pausedRef = useRef(false);
   const raceIdRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const startedAtRef = useRef(0);
   const pausedAtRef = useRef(0);
   const finishedSortsRef = useRef(new Set<SortName>());
-  const hasSeededInitialDataRef = useRef(false);
-
-  const seedArrays = useCallback((size: number) => {
-    baseDataRef.current = generateRandomData(size);
-    framesRef.current = createSortRecord(() => null);
-    setSeedVersion((version) => version + 1);
-  }, []);
 
   const stopPlayback = useCallback(() => {
     if (rafRef.current !== null) {
@@ -59,17 +39,10 @@ export function useAlgoRace() {
     }
   }, []);
 
+  // Draws the unsorted dataset whenever a new input is seeded.
   useEffect(() => {
-    if (hasSeededInitialDataRef.current) return;
-    hasSeededInitialDataRef.current = true;
-    seedArrays(arraySize);
-  }, [arraySize, seedArrays]);
-
-  // Redraws the canvases whenever a fresh dataset is seeded.
-  useEffect(() => {
-    if (seedVersion === 0) return;
-    for (const name of SORT_NAMES) paint(name, baseDataRef.current);
-  }, [seedVersion, paint]);
+    for (const name of SORT_NAMES) paint(name, input.data);
+  }, [input, paint]);
 
   useEffect(() => stopPlayback, [stopPlayback]);
 
@@ -78,15 +51,14 @@ export function useAlgoRace() {
       raceIdRef.current += 1;
       stopPlayback();
       pausedRef.current = false;
+      activeRaceRef.current = null;
       setIsRunning(false);
       setIsPaused(false);
-      setIsPreparing(false);
-      setPrepared(0);
       setRaceStats([]);
       finishedSortsRef.current.clear();
-      seedArrays(size);
+      refresh(size);
     },
-    [arraySize, seedArrays, stopPlayback],
+    [arraySize, refresh, stopPlayback],
   );
 
   const changeArraySize = (size: number) => {
@@ -96,116 +68,76 @@ export function useAlgoRace() {
   };
 
   const registerFinish = useCallback((name: SortName) => {
+    const race = activeRaceRef.current;
     const finishedSorts = finishedSortsRef.current;
-    if (finishedSorts.has(name)) return;
+    if (!race || finishedSorts.has(name)) return;
 
     finishedSorts.add(name);
     setRaceStats((prev) => [
       ...prev,
       {
         name,
-        executionMs: executionRef.current[name],
-        playbackMs: playbackRef.current[name],
+        executionMs: race.executionMs[name],
+        playbackMs: race.playbackMs[name],
       },
     ]);
   }, []);
 
-  const startRace = useCallback(async () => {
-    const raceId = raceIdRef.current + 1;
-    raceIdRef.current = raceId;
-    stopPlayback();
-    pausedRef.current = false;
-    finishedSortsRef.current.clear();
-    setIsRunning(true);
-    setIsPaused(false);
-    setIsPreparing(true);
-    setPrepared(0);
-    setRaceStats([]);
+  const startRace = useCallback(
+    (race: PreparedRace) => {
+      const raceId = raceIdRef.current + 1;
+      raceIdRef.current = raceId;
+      stopPlayback();
+      pausedRef.current = false;
+      activeRaceRef.current = race;
+      finishedSortsRef.current.clear();
+      setIsRunning(true);
+      setIsPaused(false);
+      setRaceStats([]);
 
-    const data = baseDataRef.current;
-    // Yields to event loop so React can render the preparing UI state before benchmark loops begin.
-    await nextFrame();
+      startedAtRef.current = performance.now();
 
-    // Timings must run before frame capture to calculate proportional playback frame budgets.
-    for (const algorithm of ALGORITHMS) {
-      if (raceId !== raceIdRef.current) return;
-      executionRef.current[algorithm.name] = measureExecutionMs(
-        algorithm.run,
-        data,
-      );
-      setPrepared((done) => done + 1);
-      await nextFrame();
-    }
+      const tick = () => {
+        if (raceId !== raceIdRef.current) return;
 
-    const slowestMs = Math.max(
-      ...SORT_NAMES.map((name) => executionRef.current[name]),
-    );
-    for (const name of SORT_NAMES) {
-      playbackRef.current[name] = Math.max(
-        MIN_PLAYBACK_MS,
-        (RACE_DURATION_MS * executionRef.current[name]) / slowestMs,
-      );
-    }
-    playbackOrderRef.current = [...SORT_NAMES].sort(
-      (a, b) => playbackRef.current[a] - playbackRef.current[b],
-    );
+        if (pausedRef.current) {
+          rafRef.current = requestAnimationFrame(tick);
+          return;
+        }
 
-    for (const algorithm of ALGORITHMS) {
-      if (raceId !== raceIdRef.current) return;
-      framesRef.current[algorithm.name] = captureFrames(
-        algorithm.run,
-        data,
-        frameBudgetFor(playbackRef.current[algorithm.name], data.length),
-      );
-      setPrepared((done) => done + 1);
-      await nextFrame();
-    }
+        const elapsed = performance.now() - startedAtRef.current;
+        let allDone = true;
 
-    if (raceId !== raceIdRef.current) return;
+        // Evaluates fastest algorithms first so finish state is registered accurately during dropped frames.
+        for (const name of race.playbackOrder) {
+          const strip = race.frames[name];
+          const progressRatio = Math.min(1, elapsed / race.playbackMs[name]);
+          const index = Math.min(
+            strip.count - 1,
+            Math.floor(progressRatio * strip.count),
+          );
+          paint(name, frameAt(strip, index));
+          if (progressRatio >= 1) registerFinish(name);
+          else allDone = false;
+        }
 
-    setIsPreparing(false);
-    startedAtRef.current = performance.now();
-
-    const tick = () => {
-      if (raceId !== raceIdRef.current) return;
-
-      if (pausedRef.current) {
+        if (allDone) {
+          rafRef.current = null;
+          setIsRunning(false);
+          setIsPaused(false);
+          // Reset can then start instantly. Pauses itself if a replay restarts.
+          prefetch(race.size, () => rafRef.current !== null);
+          return;
+        }
         rafRef.current = requestAnimationFrame(tick);
-        return;
-      }
+      };
 
-      const elapsed = performance.now() - startedAtRef.current;
-      let allDone = true;
-
-      // Evaluates fastest algorithms first so finish state is registered accurately during dropped frames.
-      for (const name of playbackOrderRef.current) {
-        const strip = framesRef.current[name];
-        if (!strip) continue;
-        const progress = Math.min(1, elapsed / playbackRef.current[name]);
-        const index = Math.min(
-          strip.count - 1,
-          Math.floor(progress * strip.count),
-        );
-        paint(name, frameAt(strip, index));
-        if (progress >= 1) registerFinish(name);
-        else allDone = false;
-      }
-
-      if (allDone) {
-        rafRef.current = null;
-        setIsRunning(false);
-        setIsPaused(false);
-        return;
-      }
       rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-  }, [paint, registerFinish, stopPlayback]);
+    },
+    [paint, prefetch, registerFinish, stopPlayback],
+  );
 
   const toggleRace = () => {
-    if (isPreparing) return;
-
     if (isRunning) {
       const paused = !pausedRef.current;
       if (paused) {
@@ -218,7 +150,8 @@ export function useAlgoRace() {
       return;
     }
 
-    void startRace();
+    if (!prepared) return;
+    startRace(prepared);
   };
 
   // Stats are appended in finish order, so position doubles as the podium rank.
@@ -241,7 +174,7 @@ export function useAlgoRace() {
     isPaused,
     isPreparing,
     isRunning,
-    prepared,
+    prepareProgress: progress,
     raceComplete,
     raceStats,
     registerCanvas,
