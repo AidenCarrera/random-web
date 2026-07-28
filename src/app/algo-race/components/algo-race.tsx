@@ -9,6 +9,7 @@ import { SortVisualizer } from "./sort-visualizer";
 export function AlgoRace() {
   const {
     arraySize,
+    canSkipToEnd,
     changeArraySize,
     isPaused,
     isPreparing,
@@ -19,6 +20,7 @@ export function AlgoRace() {
     registerCanvas,
     reset,
     getRank,
+    skipToEnd,
     toggleRace,
   } = useAlgoRace();
 
@@ -26,12 +28,14 @@ export function AlgoRace() {
     <div className="mx-auto flex h-full max-w-360 flex-col gap-3 md:gap-4">
       <RaceHeader
         arraySize={arraySize}
+        canSkipToEnd={canSkipToEnd}
         isPaused={isPaused}
         isPreparing={isPreparing}
         isRunning={isRunning}
         prepareProgress={prepareProgress}
         onSizeChange={changeArraySize}
         onToggle={toggleRace}
+        onSkipToEnd={skipToEnd}
         onReset={reset}
       />
 

@@ -14,21 +14,16 @@ const createInput = (size: number): RaceInput => ({
   data: generateRandomData(size),
 });
 
-/**
- * Holds one prepared race for the visible dataset and, optionally, a prefetched
- * one for the next. Preparation is a pure effect of the current input, so any
- * change of size or dataset invalidates the cache and rebuilds it.
- */
+/** Manages preparation and background prefetching for race datasets. */
 export function useRacePreparation(initialSize: number) {
   const [input, setInput] = useState<RaceInput>(() => createInput(initialSize));
   const [prepared, setPrepared] = useState<PreparedRace | null>(null);
   const [completedSteps, setCompletedSteps] = useState(0);
 
-  // Set when an input arrives already prepared, so the effect below skips rework.
+  // Skip rebuild when input is already prepared by prefetch.
   const readyIdRef = useRef(-1);
 
-  // `race: null` means a prefetch is still in flight. The token discards results
-  // from prefetches that were superseded before they resolved.
+  // Token invalidates stale background prefetches when superseded.
   const prefetchRef = useRef<{
     token: number;
     race: PreparedRace | null;
@@ -59,10 +54,7 @@ export function useRacePreparation(initialSize: number) {
     prefetchRef.current = null;
   }, []);
 
-  /**
-   * Swaps in a fresh dataset. Adopts the prefetched race when one is ready for
-   * this size, making Reset and Race Again instant.
-   */
+  /** Swaps dataset, adopting prefetched race if size matches. */
   const refresh = useCallback(
     (size: number) => {
       const cached = prefetchRef.current?.race;
@@ -81,7 +73,7 @@ export function useRacePreparation(initialSize: number) {
     [discardPrefetch],
   );
 
-  /** Builds the race the user is most likely to ask for next, in the background. */
+  /** Prefetches next race dataset in the background. */
   const prefetch = useCallback((size: number, isBlocked?: () => boolean) => {
     if (prefetchRef.current) return;
 

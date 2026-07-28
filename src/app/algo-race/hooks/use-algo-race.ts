@@ -39,7 +39,6 @@ export function useAlgoRace() {
     }
   }, []);
 
-  // Draws the unsorted dataset whenever a new input is seeded.
   useEffect(() => {
     for (const name of SORT_NAMES) paint(name, input.data);
   }, [input, paint]);
@@ -137,6 +136,22 @@ export function useAlgoRace() {
     [paint, prefetch, registerFinish, stopPlayback],
   );
 
+  /**
+   * Rewinds the clock past the longest playback so the normal tick paints the
+   * final frames and registers the straggler's finish in the usual order.
+   */
+  const skipToEnd = useCallback(() => {
+    const race = activeRaceRef.current;
+    if (!race || rafRef.current === null) return;
+
+    const longestMs = Math.max(
+      ...SORT_NAMES.map((name) => race.playbackMs[name]),
+    );
+    startedAtRef.current = performance.now() - longestMs;
+    pausedRef.current = false;
+    setIsPaused(false);
+  }, []);
+
   const toggleRace = () => {
     if (isRunning) {
       const paused = !pausedRef.current;
@@ -161,6 +176,8 @@ export function useAlgoRace() {
   };
 
   const raceComplete = raceStats.length === SORT_NAMES.length;
+  // Offered once a single straggler is left, when the rest of the grid sits idle.
+  const canSkipToEnd = isRunning && raceStats.length === SORT_NAMES.length - 1;
 
   // Redraws canvases to fit updated dimensions after results panel opens.
   useEffect(() => {
@@ -170,6 +187,7 @@ export function useAlgoRace() {
 
   return {
     arraySize,
+    canSkipToEnd,
     changeArraySize,
     isPaused,
     isPreparing,
@@ -180,6 +198,7 @@ export function useAlgoRace() {
     registerCanvas,
     reset,
     getRank,
+    skipToEnd,
     toggleRace,
   };
 }

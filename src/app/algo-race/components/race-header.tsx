@@ -1,17 +1,19 @@
 "use client";
 
-import { Pause, Play, RotateCcw } from "lucide-react";
+import { Pause, Play, RotateCcw, SkipForward } from "lucide-react";
 
 import { SIZE_OPTIONS } from "../config";
 
 type RaceHeaderProps = {
   arraySize: number;
+  canSkipToEnd: boolean;
   isPaused: boolean;
   isPreparing: boolean;
   isRunning: boolean;
   prepareProgress: number;
   onSizeChange: (size: number) => void;
   onToggle: () => void;
+  onSkipToEnd: () => void;
   onReset: () => void;
 };
 
@@ -48,12 +50,14 @@ function StartButtonLabel({
 
 export function RaceHeader({
   arraySize,
+  canSkipToEnd,
   isPaused,
   isPreparing,
   isRunning,
   prepareProgress,
   onSizeChange,
   onToggle,
+  onSkipToEnd,
   onReset,
 }: RaceHeaderProps) {
   return (
@@ -104,6 +108,15 @@ export function RaceHeader({
             />
           )}
         </button>
+        {canSkipToEnd && (
+          <button
+            onClick={onSkipToEnd}
+            title="Finish the last algorithm now"
+            className="flex items-center gap-1.5 rounded-lg border-2 border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm transition-all hover:bg-slate-100"
+          >
+            <SkipForward className="h-3.5 w-3.5" /> SKIP TO END
+          </button>
+        )}
         <button
           onClick={() => onReset()}
           className="flex items-center gap-1.5 rounded-lg border-2 border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm transition-all hover:bg-slate-100"
