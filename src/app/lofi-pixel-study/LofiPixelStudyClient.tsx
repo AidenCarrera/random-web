@@ -418,14 +418,14 @@ export default function LofiPixelStudyClient({
     }
   }, [isMuted, volume]);
 
-  // Sync source and state when track changes
+  // Audio `src` is managed imperatively to avoid JSX re-renders prematurely stopping playback.
   useEffect(() => {
     const audio = audioRef.current;
     if (audio && currentTrack.path) {
       const nextSource = new URL(currentTrack.path, window.location.href).href;
       if (audio.src === nextSource) return;
 
-      audio.src = currentTrack.path;
+      audio.src = nextSource;
       audio.load();
       if (isPlaying) {
         audio.play().catch(() => setIsPlaying(false));
@@ -563,7 +563,7 @@ export default function LofiPixelStudyClient({
     >
       {/* HTML5 Audio Node */}
       {currentTrack.path && (
-        <audio ref={audioRef} src={currentTrack.path} loop={isLooping} />
+        <audio ref={audioRef} loop={isLooping} preload="metadata" />
       )}
       {selectedAlarm?.path && (
         <audio ref={alarmAudioRef} src={selectedAlarm.path} preload="auto" />
