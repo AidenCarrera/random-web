@@ -1,32 +1,12 @@
 import type { EmojiCategory, Theme } from "./types";
 
+// prettier-ignore
 export const EMOJI_CATEGORIES: EmojiCategory[] = [
   {
     id: "flora",
     name: "Plants",
     icon: "🌱",
-    emojis: [
-      "🌱",
-      "🌿",
-      "🍀",
-      "🌵",
-      "🌴",
-      "🌲",
-      "🌳",
-      "🍁",
-      "🍂",
-      "🍃",
-      "🌻",
-      "🌹",
-      "🌷",
-      "🌼",
-      "🌸",
-      "🌺",
-      "🪷",
-      "🍄",
-      "🌾",
-      "🎋",
-    ],
+    emojis: ["🌱", "🌿", "🍀", "🌵", "🌴", "🌲", "🌳", "🍁", "🍂", "🍃", "🌻", "🌹", "🌷", "🌼", "🌸", "🌺", "🪷", "🍄", "🌾", "🎋"],
   },
   {
     id: "stones",
@@ -38,20 +18,7 @@ export const EMOJI_CATEGORIES: EmojiCategory[] = [
     id: "fauna",
     name: "Animals",
     icon: "🦋",
-    emojis: [
-      "🦋",
-      "🐞",
-      "🐌",
-      "🐝",
-      "🦚",
-      "🐸",
-      "🐢",
-      "🐟",
-      "🐠",
-      "🦆",
-      "🐦",
-      "🐉",
-    ],
+    emojis: ["🦋", "🐞", "🐌", "🐝", "🦚", "🐸", "🐢", "🐟", "🐠", "🦆", "🐦", "🐉"],
   },
   {
     id: "zen",
