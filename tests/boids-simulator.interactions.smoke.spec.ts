@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 
+import { BASE_FRAME_DURATION } from "../src/app/boids-simulator/constants";
 import {
-  BASE_FRAME_DURATION,
   getFrameScale,
   getSeparationRadius,
-} from "../src/app/boids-simulator/simulator";
+} from "../src/app/boids-simulator/lib/flock";
 
 test.describe("Boids Simulator interactions", () => {
   test.describe.configure({ mode: "serial" });
