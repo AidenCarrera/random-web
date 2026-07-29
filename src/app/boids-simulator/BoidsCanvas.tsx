@@ -1,32 +1,37 @@
 "use client";
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import {
+  forwardRef,
+  memo,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react";
 
 import { canvasToBlob } from "@/lib/canvasExport";
 
 import { useLatestRef } from "./hooks/useLatestRef";
 import { usePointerControls } from "./hooks/usePointerControls";
 import {
+  createEmptyFlock,
   createFlock,
   getFrameScale,
   resizeFlock,
   scaleFlock,
   scatterFlock,
   stepFlock,
+  type FlockStep,
 } from "./lib/flock";
-import { drawFlock, paintBackground } from "./lib/render";
+import { createFlockRenderer } from "./lib/renderer";
 import { SpatialGrid } from "./lib/spatial-grid";
-import type {
-  Boid,
-  BoidsCanvasHandle,
-  BoidsMetrics,
-  BoidsSettings,
-} from "./types";
+import type { BoidsCanvasHandle, BoidsMetrics, BoidsSettings } from "./types";
 
 type BoidsCanvasProps = {
   onMetrics: (metrics: BoidsMetrics) => void;
   paused: boolean;
   settings: BoidsSettings;
+  /** Metrics are only reported while the readout is on screen. */
+  showStats: boolean;
   trails: boolean;
 };
 
@@ -34,30 +39,22 @@ type BoidsCanvasProps = {
 const METRICS_INTERVAL = 600;
 const MAX_PIXEL_RATIO = 2;
 
-function fitCanvas(
-  canvas: HTMLCanvasElement,
-  context: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-) {
-  const ratio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
-  canvas.width = Math.max(1, Math.floor(width * ratio));
-  canvas.height = Math.max(1, Math.floor(height * ratio));
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${height}px`;
-  context.setTransform(ratio, 0, 0, ratio, 0, 0);
-}
+const pixelRatio = () =>
+  Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
 
-export const BoidsCanvas = forwardRef<BoidsCanvasHandle, BoidsCanvasProps>(
-  function BoidsCanvas({ onMetrics, paused, settings, trails }, forwardedRef) {
+export const BoidsCanvas = memo(
+  forwardRef<BoidsCanvasHandle, BoidsCanvasProps>(function BoidsCanvas(
+    { onMetrics, paused, settings, showStats, trails },
+    forwardedRef,
+  ) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const boidsRef = useRef<Boid[]>([]);
-    const sizeRef = useRef({ width: 1, height: 1 });
+    const flockRef = useRef(createEmptyFlock());
     const reseedRef = useRef(true);
     const settingsRef = useLatestRef(settings);
     const pausedRef = useLatestRef(paused);
+    const showStatsRef = useLatestRef(showStats);
     const trailsRef = useLatestRef(trails);
-    const { pointerHandlers, pointerRef } = usePointerControls();
+    const { pointerHandlers, pointerRef, refreshBounds } = usePointerControls();
 
     useImperativeHandle(
       forwardedRef,
@@ -65,7 +62,7 @@ export const BoidsCanvas = forwardRef<BoidsCanvasHandle, BoidsCanvasProps>(
         reseed: () => {
           reseedRef.current = true;
         },
-        scatter: () => scatterFlock(boidsRef.current),
+        scatter: () => scatterFlock(flockRef.current),
         snapshot: async () => {
           const canvas = canvasRef.current;
           if (!canvas) return null;
@@ -85,52 +82,70 @@ export const BoidsCanvas = forwardRef<BoidsCanvasHandle, BoidsCanvasProps>(
       const parent = canvas?.parentElement;
       if (!canvas || !parent) return;
 
-      const context = canvas.getContext("2d", {
-        alpha: false,
-        desynchronized: true,
-      });
-      if (!context) return;
+      const renderer = createFlockRenderer(canvas);
+      if (!renderer) return;
 
-      const syncSize = () => {
-        const bounds = parent.getBoundingClientRect();
-        const previous = sizeRef.current;
-        const width = Math.max(1, bounds.width);
-        const height = Math.max(1, bounds.height);
+      const grid = new SpatialGrid();
+      // Reused every frame so the loop allocates nothing.
+      const step: FlockStep = {
+        flock: flockRef.current,
+        delta: 1,
+        grid,
+        height: 1,
+        pointer: pointerRef.current,
+        settings: settingsRef.current,
+        width: 1,
+      };
 
-        sizeRef.current = { width, height };
-        fitCanvas(canvas, context, width, height);
-        paintBackground(context, width, height);
+      let width = 1;
+      let height = 1;
+      let ratio = pixelRatio();
+
+      const applySize = (nextWidth: number, nextHeight: number) => {
+        const previousWidth = width;
+        const previousHeight = height;
+        width = Math.max(1, nextWidth);
+        height = Math.max(1, nextHeight);
+        ratio = pixelRatio();
+
+        renderer.resize(width, height, ratio);
+        refreshBounds(canvas);
         if (
-          boidsRef.current.length > 0 &&
-          previous.width > 1 &&
-          previous.height > 1
+          flockRef.current.count > 0 &&
+          previousWidth > 1 &&
+          previousHeight > 1
         ) {
           scaleFlock(
-            boidsRef.current,
-            width / previous.width,
-            height / previous.height,
+            flockRef.current,
+            width / previousWidth,
+            height / previousHeight,
           );
         }
       };
 
-      syncSize();
-      const observer = new ResizeObserver(syncSize);
+      const bounds = parent.getBoundingClientRect();
+      applySize(bounds.width, bounds.height);
+
+      // `contentRect` is already measured, so reading it costs no extra layout.
+      const observer = new ResizeObserver((entries) => {
+        const entry = entries[entries.length - 1];
+        applySize(entry.contentRect.width, entry.contentRect.height);
+      });
       observer.observe(parent);
 
-      const grid = new SpatialGrid();
       let previousTime = performance.now();
       let metricsTime = previousTime;
       let frames = 0;
       let neighborSamples = 0;
 
       const render = (time: number) => {
-        const { width, height } = sizeRef.current;
+        frame = requestAnimationFrame(render);
         const currentSettings = settingsRef.current;
         const delta = getFrameScale(time - previousTime);
         previousTime = time;
 
         if (reseedRef.current) {
-          boidsRef.current = createFlock(
+          flockRef.current = createFlock(
             currentSettings.count,
             width,
             height,
@@ -139,7 +154,7 @@ export const BoidsCanvas = forwardRef<BoidsCanvasHandle, BoidsCanvasProps>(
           reseedRef.current = false;
         } else {
           resizeFlock(
-            boidsRef.current,
+            flockRef.current,
             currentSettings.count,
             width,
             height,
@@ -147,43 +162,47 @@ export const BoidsCanvas = forwardRef<BoidsCanvasHandle, BoidsCanvasProps>(
           );
         }
 
-        const boids = boidsRef.current;
-        const totalNeighbors = pausedRef.current
-          ? 0
-          : stepFlock({
-              boids,
-              delta,
-              grid,
-              height,
-              pointer: pointerRef.current,
-              settings: currentSettings,
-              width,
-            });
+        const flock = flockRef.current;
+        step.flock = flock;
+        step.delta = delta;
+        step.height = height;
+        step.settings = currentSettings;
+        step.width = width;
 
-        paintBackground(context, width, height);
-        drawFlock(context, boids, trailsRef.current);
+        const totalNeighbors = pausedRef.current ? 0 : stepFlock(step);
+        renderer.draw(flock, trailsRef.current);
 
         frames += 1;
-        neighborSamples += totalNeighbors / Math.max(1, boids.length);
+        neighborSamples += totalNeighbors / Math.max(1, flock.count);
         if (time - metricsTime >= METRICS_INTERVAL) {
-          onMetrics({
-            fps: Math.round((frames * 1000) / (time - metricsTime)),
-            neighbors: Math.round(neighborSamples / Math.max(1, frames)),
-          });
+          // Avoid re-rendering state when metrics overlay is hidden.
+          if (showStatsRef.current) {
+            onMetrics({
+              fps: Math.round((frames * 1000) / (time - metricsTime)),
+              neighbors: Math.round(neighborSamples / Math.max(1, frames)),
+            });
+          }
           frames = 0;
           neighborSamples = 0;
           metricsTime = time;
         }
-
-        frame = requestAnimationFrame(render);
       };
 
       let frame = requestAnimationFrame(render);
       return () => {
         observer.disconnect();
         cancelAnimationFrame(frame);
+        renderer.dispose();
       };
-    }, [onMetrics, pausedRef, pointerRef, settingsRef, trailsRef]);
+    }, [
+      onMetrics,
+      pausedRef,
+      pointerRef,
+      refreshBounds,
+      settingsRef,
+      showStatsRef,
+      trailsRef,
+    ]);
 
     return (
       <canvas
@@ -192,5 +211,5 @@ export const BoidsCanvas = forwardRef<BoidsCanvasHandle, BoidsCanvasProps>(
         {...pointerHandlers}
       />
     );
-  },
+  }),
 );

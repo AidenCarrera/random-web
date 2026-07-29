@@ -62,6 +62,7 @@ export default function BoidsSimulatorPage() {
             ref={canvasRef}
             settings={effectiveSettings}
             paused={paused}
+            showStats={showStats}
             trails={trails}
             onMetrics={setMetrics}
           />

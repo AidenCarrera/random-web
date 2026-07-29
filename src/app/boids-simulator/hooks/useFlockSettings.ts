@@ -8,10 +8,7 @@ import {
 import { BOIDS_PRESETS, DEFAULT_BOIDS_SETTINGS } from "../data/presets";
 import type { BoidsPresetName, BoidsSettings } from "../types";
 
-/**
- * Owns the flocking parameters and keeps the population within what the
- * current device can comfortably animate.
- */
+/** Manages flocking settings and enforces device-specific population caps. */
 export function useFlockSettings(usesTouchControls: boolean) {
   const [settings, setSettings] = useState(DEFAULT_BOIDS_SETTINGS);
   const [activePreset, setActivePreset] = useState<BoidsPresetName | null>(

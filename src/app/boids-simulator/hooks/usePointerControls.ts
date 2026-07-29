@@ -2,7 +2,7 @@ import type {
   MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
-import { useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 import type { PointerMode, PointerState } from "../types";
 
@@ -12,10 +12,7 @@ type TrackedPointer = {
   mode: PointerMode;
 };
 
-/**
- * Tracks every pointer on the canvas and reduces them to one influence point:
- * a single contact attracts (right button repels), two or more always repel.
- */
+/** Reduces multi-pointer input to a single influence point (1 touch attracts/repels, 2+ repels). */
 export function usePointerControls() {
   const pointerRef = useRef<PointerState>({
     x: 0,
@@ -25,6 +22,15 @@ export function usePointerControls() {
     mode: "attract",
   });
   const trackedRef = useRef(new Map<number, TrackedPointer>());
+
+  // Cached so a drag does not force a layout read on every pointermove.
+  const boundsRef = useRef({ left: 0, top: 0 });
+
+  const refreshBounds = useCallback((canvas: HTMLCanvasElement) => {
+    const bounds = canvas.getBoundingClientRect();
+    boundsRef.current.left = bounds.left;
+    boundsRef.current.top = bounds.top;
+  }, []);
 
   const pointerHandlers = useMemo(() => {
     const syncPointerState = () => {
@@ -53,7 +59,7 @@ export function usePointerControls() {
     };
 
     const trackPointer = (event: ReactPointerEvent<HTMLCanvasElement>) => {
-      const bounds = event.currentTarget.getBoundingClientRect();
+      const bounds = boundsRef.current;
       const tracked = trackedRef.current.get(event.pointerId);
       trackedRef.current.set(event.pointerId, {
         x: event.clientX - bounds.left,
@@ -72,6 +78,8 @@ export function usePointerControls() {
     return {
       onPointerDown: (event: ReactPointerEvent<HTMLCanvasElement>) => {
         event.preventDefault();
+        // One layout read per gesture; the canvas cannot move mid-drag.
+        refreshBounds(event.currentTarget);
         trackPointer(event);
         event.currentTarget.setPointerCapture(event.pointerId);
       },
@@ -92,7 +100,7 @@ export function usePointerControls() {
       onContextMenu: (event: ReactMouseEvent<HTMLCanvasElement>) =>
         event.preventDefault(),
     };
-  }, []);
+  }, [refreshBounds]);
 
-  return { pointerHandlers, pointerRef };
+  return { pointerHandlers, pointerRef, refreshBounds };
 }

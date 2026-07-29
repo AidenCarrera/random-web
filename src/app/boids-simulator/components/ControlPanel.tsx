@@ -31,10 +31,7 @@ type ControlPanelProps = {
   usesTouchControls: boolean;
 };
 
-/**
- * Side panel on pointer devices, bottom drawer on small screens. The collapse
- * toggle and the drawer handle are swapped by the stylesheet, so both render.
- */
+/** Control panel rendered as a side drawer on desktop and a bottom sheet on mobile. */
 export function ControlPanel({
   activePreset,
   collapsed,

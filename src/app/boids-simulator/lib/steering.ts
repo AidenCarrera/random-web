@@ -3,21 +3,30 @@ export type Vector = { x: number; y: number };
 
 /** Below this length a vector carries no usable direction. */
 const MINIMUM_MAGNITUDE = 0.0001;
+const MINIMUM_MAGNITUDE_SQUARED = MINIMUM_MAGNITUDE * MINIMUM_MAGNITUDE;
 
 export function createVector(): Vector {
   return { x: 0, y: 0 };
 }
 
-/** Caps `(x, y)` at `maximum` length. */
+/**
+ * Distance comparisons use squared magnitudes. `Math.hypot` is avoided in favor of
+ * direct squared math and `Math.sqrt` to prevent variadic call and overflow guard overhead.
+ */
+
 export function clampMagnitude(
   x: number,
   y: number,
   maximum: number,
   out: Vector,
 ) {
-  const magnitude = Math.hypot(x, y);
-  const scale =
-    magnitude <= maximum || magnitude === 0 ? 1 : maximum / magnitude;
+  const magnitudeSquared = x * x + y * y;
+  if (magnitudeSquared <= maximum * maximum) {
+    out.x = x;
+    out.y = y;
+    return;
+  }
+  const scale = maximum / Math.sqrt(magnitudeSquared);
   out.x = x * scale;
   out.y = y * scale;
 }
@@ -31,14 +40,14 @@ export function clampSpeed(
   fallbackAngle: number,
   out: Vector,
 ) {
-  const magnitude = Math.hypot(x, y);
-  if (magnitude < MINIMUM_MAGNITUDE) {
+  const magnitudeSquared = x * x + y * y;
+  if (magnitudeSquared < MINIMUM_MAGNITUDE_SQUARED) {
     out.x = Math.cos(fallbackAngle) * minimum;
     out.y = Math.sin(fallbackAngle) * minimum;
     return;
   }
-  if (magnitude < minimum) {
-    const scale = minimum / magnitude;
+  if (magnitudeSquared < minimum * minimum) {
+    const scale = minimum / Math.sqrt(magnitudeSquared);
     out.x = x * scale;
     out.y = y * scale;
     return;
@@ -46,10 +55,7 @@ export function clampSpeed(
   clampMagnitude(x, y, maximum, out);
 }
 
-/**
- * Force that turns a velocity toward `(x, y)`: the difference between the
- * desired full-speed heading and the current one, capped by `steeringForce`.
- */
+/** Calculates Reynolds steering force toward target (x, y), capped by steeringForce. */
 export function steerToward(
   x: number,
   y: number,
@@ -59,14 +65,15 @@ export function steerToward(
   steeringForce: number,
   out: Vector,
 ) {
-  const magnitude = Math.hypot(x, y);
-  if (magnitude < MINIMUM_MAGNITUDE) {
+  const magnitudeSquared = x * x + y * y;
+  if (magnitudeSquared < MINIMUM_MAGNITUDE_SQUARED) {
     out.x = 0;
     out.y = 0;
     return;
   }
-  const desiredX = (x / magnitude) * maximumSpeed;
-  const desiredY = (y / magnitude) * maximumSpeed;
+  const scale = maximumSpeed / Math.sqrt(magnitudeSquared);
+  const desiredX = x * scale;
+  const desiredY = y * scale;
   clampMagnitude(
     desiredX - velocityX,
     desiredY - velocityY,

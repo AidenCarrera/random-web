@@ -1,7 +1,7 @@
 import { BASE_FRAME_DURATION, MAX_SEPARATION_FORCE } from "../constants";
-import type { Boid, BoidsSettings, PointerState } from "../types";
-import { createBoidColors } from "./palette";
-import type { SpatialGrid } from "./spatial-grid";
+import type { BoidsSettings, Flock, PointerState } from "../types";
+import { pickBoidColor } from "./palette";
+import { SORTED_STRIDE, type SpatialGrid } from "./spatial-grid";
 import { clampSpeed, createVector, steerToward } from "./steering";
 
 /** Trail points kept per boid; sizes the ring buffer on every boid. */
@@ -20,10 +20,7 @@ const WRAP_MARGIN = 10;
 const SCATTER_MIN_SPEED = 3;
 const SCATTER_SPEED_RANGE = 4;
 
-/**
- * Neighbor cell offsets per axis. Grids narrower than three cells wrap onto
- * themselves, so duplicate offsets are dropped in first-visited order.
- */
+/** Neighbor cell offsets per axis, deduplicated when grid spans are narrower than 3 cells. */
 const WRAP_OFFSETS = [[-1], [-1, 0], [-1, 0, 1]] as const;
 
 // Scratch vectors shared by the hot loop; `stepFlock` runs synchronously.
@@ -49,7 +46,49 @@ export function getSeparationRadius(
   return boidVision * forceProgress * 0.9;
 }
 
-function createBoid(width: number, height: number, settings: BoidsSettings) {
+function allocate(capacity: number): Flock {
+  return {
+    count: 0,
+    capacity,
+    x: new Float32Array(capacity),
+    y: new Float32Array(capacity),
+    vx: new Float32Array(capacity),
+    vy: new Float32Array(capacity),
+    phase: new Float32Array(capacity),
+    size: new Float32Array(capacity),
+    wander: new Float32Array(capacity),
+    color: new Uint16Array(capacity),
+    trail: new Float32Array(capacity * TRAIL_CAPACITY * 2),
+    trailStart: new Uint8Array(capacity),
+    trailLength: new Uint8Array(capacity),
+  };
+}
+
+/** Moves the live boids into wider buffers, doubling so growth stays amortized. */
+function grow(flock: Flock, capacity: number) {
+  const next = allocate(Math.max(capacity, flock.capacity * 2));
+  next.count = flock.count;
+  next.x.set(flock.x);
+  next.y.set(flock.y);
+  next.vx.set(flock.vx);
+  next.vy.set(flock.vy);
+  next.phase.set(flock.phase);
+  next.size.set(flock.size);
+  next.wander.set(flock.wander);
+  next.color.set(flock.color);
+  next.trail.set(flock.trail);
+  next.trailStart.set(flock.trailStart);
+  next.trailLength.set(flock.trailLength);
+  Object.assign(flock, next);
+}
+
+function spawnBoid(
+  flock: Flock,
+  index: number,
+  width: number,
+  height: number,
+  settings: BoidsSettings,
+) {
   const angle = Math.random() * Math.PI * 2;
   const radius = Math.min(width, height) * (0.08 + Math.random() * 0.28);
   const x = width / 2 + Math.cos(angle) * radius;
@@ -58,38 +97,33 @@ function createBoid(width: number, height: number, settings: BoidsSettings) {
   const speed =
     settings.minSpeed +
     Math.random() * Math.max(0, settings.maxSpeed - settings.minSpeed);
-  const trail = new Float32Array(TRAIL_CAPACITY * 2);
-  trail[0] = x;
-  trail[1] = y;
 
-  const boid: Boid = {
-    x,
-    y,
-    vx: Math.cos(heading) * speed,
-    vy: Math.sin(heading) * speed,
-    phase: Math.random() * Math.PI * 2,
-    size: 5.2 + Math.random() * 3.2,
-    ...createBoidColors(),
-    wander: (Math.random() - 0.5) * 0.4,
-    trail,
-    trailStart: 0,
-    trailLength: 1,
-  };
-  return boid;
+  flock.x[index] = x;
+  flock.y[index] = y;
+  flock.vx[index] = Math.cos(heading) * speed;
+  flock.vy[index] = Math.sin(heading) * speed;
+  flock.phase[index] = Math.random() * Math.PI * 2;
+  flock.size[index] = 5.2 + Math.random() * 3.2;
+  flock.color[index] = pickBoidColor();
+  flock.wander[index] = (Math.random() - 0.5) * 0.4;
+  flock.trail[index * TRAIL_CAPACITY * 2] = x;
+  flock.trail[index * TRAIL_CAPACITY * 2 + 1] = y;
+  flock.trailStart[index] = 0;
+  flock.trailLength[index] = 1;
 }
 
-/** Grows or trims the flock in place so it matches `count`. */
 export function resizeFlock(
-  boids: Boid[],
+  flock: Flock,
   count: number,
   width: number,
   height: number,
   settings: BoidsSettings,
 ) {
-  while (boids.length < count) {
-    boids.push(createBoid(width, height, settings));
+  if (count > flock.capacity) grow(flock, count);
+  for (let index = flock.count; index < count; index += 1) {
+    spawnBoid(flock, index, width, height, settings);
   }
-  if (boids.length > count) boids.length = count;
+  flock.count = count;
 }
 
 export function createFlock(
@@ -98,66 +132,41 @@ export function createFlock(
   height: number,
   settings: BoidsSettings,
 ) {
-  const boids: Boid[] = [];
-  resizeFlock(boids, count, width, height, settings);
-  return boids;
+  const flock = allocate(Math.max(1, count));
+  resizeFlock(flock, count, width, height, settings);
+  return flock;
 }
 
+/** Placeholder flock for before the canvas has been measured. */
+export const createEmptyFlock = () => allocate(1);
+
 /** Keeps the flock in frame after the canvas changes size. */
-export function scaleFlock(boids: Boid[], scaleX: number, scaleY: number) {
-  for (const boid of boids) {
-    boid.x *= scaleX;
-    boid.y *= scaleY;
-    for (let point = 0; point < boid.trailLength; point += 1) {
-      const slot = ((boid.trailStart + point) % TRAIL_CAPACITY) * 2;
-      boid.trail[slot] *= scaleX;
-      boid.trail[slot + 1] *= scaleY;
+export function scaleFlock(flock: Flock, scaleX: number, scaleY: number) {
+  const { trail, trailLength, trailStart, x, y } = flock;
+  for (let index = 0; index < flock.count; index += 1) {
+    x[index] *= scaleX;
+    y[index] *= scaleY;
+    const base = index * TRAIL_CAPACITY * 2;
+    for (let point = 0; point < trailLength[index]; point += 1) {
+      const slot = base + (((trailStart[index] + point) % TRAIL_CAPACITY) << 1);
+      trail[slot] *= scaleX;
+      trail[slot + 1] *= scaleY;
     }
   }
 }
 
-/** Fires every boid off in a random direction. */
-export function scatterFlock(boids: Boid[]) {
-  for (const boid of boids) {
+export function scatterFlock(flock: Flock) {
+  const { vx, vy } = flock;
+  for (let index = 0; index < flock.count; index += 1) {
     const angle = Math.random() * Math.PI * 2;
     const speed = SCATTER_MIN_SPEED + Math.random() * SCATTER_SPEED_RANGE;
-    boid.vx = Math.cos(angle) * speed;
-    boid.vy = Math.sin(angle) * speed;
+    vx[index] = Math.cos(angle) * speed;
+    vy[index] = Math.sin(angle) * speed;
   }
-}
-
-function pushTrailPoint(boid: Boid) {
-  const slot = (boid.trailStart + boid.trailLength) % TRAIL_CAPACITY;
-  boid.trail[slot * 2] = boid.x;
-  boid.trail[slot * 2 + 1] = boid.y;
-  if (boid.trailLength < TRAIL_CAPACITY) boid.trailLength += 1;
-  else boid.trailStart = (boid.trailStart + 1) % TRAIL_CAPACITY;
-}
-
-/** Wraps a boid around the canvas edges, reporting whether it jumped. */
-function wrapBoid(boid: Boid, width: number, height: number) {
-  let wrapped = false;
-  if (boid.x < -WRAP_MARGIN) {
-    boid.x = width + WRAP_MARGIN;
-    wrapped = true;
-  }
-  if (boid.x > width + WRAP_MARGIN) {
-    boid.x = -WRAP_MARGIN;
-    wrapped = true;
-  }
-  if (boid.y < -WRAP_MARGIN) {
-    boid.y = height + WRAP_MARGIN;
-    wrapped = true;
-  }
-  if (boid.y > height + WRAP_MARGIN) {
-    boid.y = -WRAP_MARGIN;
-    wrapped = true;
-  }
-  return wrapped;
 }
 
 export type FlockStep = {
-  boids: Boid[];
+  flock: Flock;
   /** Frame length in 60 Hz steps, from `getFrameScale`. */
   delta: number;
   grid: SpatialGrid;
@@ -168,33 +177,49 @@ export type FlockStep = {
 };
 
 /**
- * Advances the flock by one frame and returns how many neighbors were seen in
- * total, which the canvas averages into its metrics readout.
+ * Advances the flock by one frame using spatial grid double-buffering for index-independent behavior.
+ * Returns total neighbor count for performance metrics.
  */
-export function stepFlock({
-  boids,
-  delta,
-  grid,
-  height,
-  pointer,
-  settings,
-  width,
-}: FlockStep) {
-  const perceptionSquared = settings.boidVision ** 2;
-  const separationRadius = getSeparationRadius(
-    settings.boidVision,
-    settings.separationForce,
-  );
-  const separationRadiusSquared = separationRadius ** 2;
+export function stepFlock(step: FlockStep) {
+  const { delta, flock, grid, height, pointer, settings, width } = step;
+  const count = flock.count;
+  const { phase, trail, trailLength, trailStart, vx, vy, wander, x, y } = flock;
 
-  grid.build(boids, width, height, settings.boidVision);
-  const { cellOfBoid, cellStart, columns, entries, rows } = grid;
+  // Cache settings in local variables for tight loop performance.
+  const vision = settings.boidVision;
+  const accuracy = settings.movementAccuracy;
+  const maxSpeed = settings.maxSpeed;
+  const minSpeed = settings.minSpeed;
+  const steeringForce = settings.steeringForce;
+  const alignmentForce = settings.alignmentForce;
+  const cohesionForce = settings.cohesionForce;
+  const separationForce = settings.separationForce;
+  const perceptionSquared = vision * vision;
+  const inverseVision = vision > 0 ? 1 / vision : 0;
+  const separationRadius = getSeparationRadius(vision, separationForce);
+  const separationRadiusSquared = separationRadius * separationRadius;
+  const inverseSeparationRadius =
+    separationRadius > 0 ? 1 / separationRadius : 0;
+  const halfWidth = width / 2;
+  const halfHeight = height / 2;
+  const wrapWidth = width + WRAP_MARGIN;
+  const wrapHeight = height + WRAP_MARGIN;
+  const pointerActive = pointer.active && pointer.pressed;
+  const pointerDirection = pointer.mode === "attract" ? 1 : -1;
+
+  grid.build(flock, width, height, vision);
+  const { cellOfBoid, cellStart, columns, rows, sorted } = grid;
   const columnOffsets = wrapOffsets(columns);
   const rowOffsets = wrapOffsets(rows);
+  const columnSpan = columnOffsets.length;
+  const rowSpan = rowOffsets.length;
   let totalNeighbors = 0;
 
-  for (let index = 0; index < boids.length; index += 1) {
-    const boid = boids[index];
+  for (let index = 0; index < count; index += 1) {
+    const boidX = x[index];
+    const boidY = y[index];
+    let boidVx = vx[index];
+    let boidVy = vy[index];
     const cell = cellOfBoid[index];
     const column = cell % columns;
     const row = (cell - column) / columns;
@@ -208,25 +233,30 @@ export function stepFlock({
     let neighborWeight = 0;
     let separationNeighbors = 0;
 
-    neighborSearch: for (let r = 0; r < rowOffsets.length; r += 1) {
+    neighborSearch: for (let r = 0; r < rowSpan; r += 1) {
       const neighborRow = (row + rowOffsets[r] + rows) % rows;
-      for (let c = 0; c < columnOffsets.length; c += 1) {
+      const rowBase = neighborRow * columns;
+      for (let c = 0; c < columnSpan; c += 1) {
         const neighborColumn = (column + columnOffsets[c] + columns) % columns;
-        const neighborCell = neighborRow * columns + neighborColumn;
-        const cellEnd = cellStart[neighborCell + 1];
+        const neighborCell = rowBase + neighborColumn;
+        const cellEnd = cellStart[neighborCell + 1] * SORTED_STRIDE;
 
-        for (let slot = cellStart[neighborCell]; slot < cellEnd; slot += 1) {
-          const otherIndex = entries[slot];
-          if (otherIndex === index) continue;
-          const other = boids[otherIndex];
-          let dx = other.x - boid.x;
-          let dy = other.y - boid.y;
+        for (
+          let slot = cellStart[neighborCell] * SORTED_STRIDE;
+          slot < cellEnd;
+          slot += SORTED_STRIDE
+        ) {
+          let dx = sorted[slot] - boidX;
+          let dy = sorted[slot + 1] - boidY;
 
           // Measure across the wrap seam whenever that is the shorter way.
-          if (Math.abs(dx) > width / 2) dx -= Math.sign(dx) * width;
-          if (Math.abs(dy) > height / 2) dy -= Math.sign(dy) * height;
+          if (dx > halfWidth) dx -= width;
+          else if (dx < -halfWidth) dx += width;
+          if (dy > halfHeight) dy -= height;
+          else if (dy < -halfHeight) dy += height;
 
           const distanceSquared = dx * dx + dy * dy;
+          // A zero distance is the boid meeting itself in its own cell.
           if (distanceSquared === 0 || distanceSquared > perceptionSquared) {
             continue;
           }
@@ -234,72 +264,69 @@ export function stepFlock({
           const distance = Math.sqrt(distanceSquared);
           const visionWeight = Math.max(
             MINIMUM_VISION_WEIGHT,
-            1 - distance / settings.boidVision,
+            1 - distance * inverseVision,
           );
-          alignmentX += other.vx * visionWeight;
-          alignmentY += other.vy * visionWeight;
+          alignmentX += sorted[slot + 2] * visionWeight;
+          alignmentY += sorted[slot + 3] * visionWeight;
           cohesionX += dx * visionWeight;
           cohesionY += dy * visionWeight;
           neighborWeight += visionWeight;
 
-          if (
-            separationRadius > 0 &&
-            distanceSquared < separationRadiusSquared
-          ) {
-            const proximity = 1 - distance / separationRadius;
-            const separationWeight = proximity * proximity;
-            separationX -= (dx / distance) * separationWeight;
-            separationY -= (dy / distance) * separationWeight;
+          if (distanceSquared < separationRadiusSquared) {
+            const proximity = 1 - distance * inverseSeparationRadius;
+            const separationWeight = (proximity * proximity) / distance;
+            separationX -= dx * separationWeight;
+            separationY -= dy * separationWeight;
             separationNeighbors += 1;
           }
 
           neighbors += 1;
-          if (neighbors >= settings.movementAccuracy) break neighborSearch;
+          if (neighbors >= accuracy) break neighborSearch;
         }
       }
     }
 
     totalNeighbors += neighbors;
-    boid.wander = Math.max(
+    const nextWander = Math.max(
       -WANDER_LIMIT,
       Math.min(
         WANDER_LIMIT,
-        boid.wander + (Math.random() - 0.5) * WANDER_JITTER,
+        wander[index] + (Math.random() - 0.5) * WANDER_JITTER,
       ),
     );
-    const wanderHeading = Math.atan2(boid.vy, boid.vx) + boid.wander;
-    let accelerationX =
-      Math.cos(wanderHeading) * settings.steeringForce * WANDER_WEIGHT;
-    let accelerationY =
-      Math.sin(wanderHeading) * settings.steeringForce * WANDER_WEIGHT;
+    wander[index] = nextWander;
+    const wanderHeading = Math.atan2(boidVy, boidVx) + nextWander;
+    let accelerationX = Math.cos(wanderHeading) * steeringForce * WANDER_WEIGHT;
+    let accelerationY = Math.sin(wanderHeading) * steeringForce * WANDER_WEIGHT;
 
     if (neighbors > 0 && neighborWeight > 0) {
+      const inverseWeight = 1 / neighborWeight;
       steerToward(
-        alignmentX / neighborWeight,
-        alignmentY / neighborWeight,
-        boid.vx,
-        boid.vy,
-        settings.maxSpeed,
-        settings.steeringForce,
+        alignmentX * inverseWeight,
+        alignmentY * inverseWeight,
+        boidVx,
+        boidVy,
+        maxSpeed,
+        steeringForce,
         alignment,
       );
       steerToward(
-        cohesionX / neighborWeight,
-        cohesionY / neighborWeight,
-        boid.vx,
-        boid.vy,
-        settings.maxSpeed,
-        settings.steeringForce,
+        cohesionX * inverseWeight,
+        cohesionY * inverseWeight,
+        boidVx,
+        boidVy,
+        maxSpeed,
+        steeringForce,
         cohesion,
       );
       if (separationNeighbors > 0) {
         steerToward(
           separationX,
           separationY,
-          boid.vx,
-          boid.vy,
-          settings.maxSpeed,
-          settings.steeringForce,
+          boidVx,
+          boidVy,
+          maxSpeed,
+          steeringForce,
           separation,
         );
       } else {
@@ -308,47 +335,66 @@ export function stepFlock({
       }
 
       accelerationX +=
-        alignment.x * settings.alignmentForce +
-        cohesion.x * settings.cohesionForce +
-        separation.x * settings.separationForce;
+        alignment.x * alignmentForce +
+        cohesion.x * cohesionForce +
+        separation.x * separationForce;
       accelerationY +=
-        alignment.y * settings.alignmentForce +
-        cohesion.y * settings.cohesionForce +
-        separation.y * settings.separationForce;
+        alignment.y * alignmentForce +
+        cohesion.y * cohesionForce +
+        separation.y * separationForce;
     }
 
-    if (pointer.active && pointer.pressed) {
-      const dx = pointer.x - boid.x;
-      const dy = pointer.y - boid.y;
-      const distance = Math.hypot(dx, dy);
+    if (pointerActive) {
+      const dx = pointer.x - boidX;
+      const dy = pointer.y - boidY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
       if (distance > 1 && distance < POINTER_RADIUS) {
-        const direction = pointer.mode === "attract" ? 1 : -1;
-        const influence = (1 - distance / POINTER_RADIUS) * POINTER_STRENGTH;
-        accelerationX += (dx / distance) * influence * direction;
-        accelerationY += (dy / distance) * influence * direction;
+        const influence =
+          ((1 - distance / POINTER_RADIUS) * POINTER_STRENGTH) / distance;
+        accelerationX += dx * influence * pointerDirection;
+        accelerationY += dy * influence * pointerDirection;
       }
     }
 
-    boid.vx = (boid.vx + accelerationX * delta) * VELOCITY_RETENTION;
-    boid.vy = (boid.vy + accelerationY * delta) * VELOCITY_RETENTION;
-    clampSpeed(
-      boid.vx,
-      boid.vy,
-      settings.minSpeed,
-      settings.maxSpeed,
-      boid.phase,
-      velocity,
-    );
-    boid.vx = velocity.x;
-    boid.vy = velocity.y;
-    boid.x += boid.vx * delta;
-    boid.y += boid.vy * delta;
+    boidVx = (boidVx + accelerationX * delta) * VELOCITY_RETENTION;
+    boidVy = (boidVy + accelerationY * delta) * VELOCITY_RETENTION;
+    clampSpeed(boidVx, boidVy, minSpeed, maxSpeed, phase[index], velocity);
+    boidVx = velocity.x;
+    boidVy = velocity.y;
+    vx[index] = boidVx;
+    vy[index] = boidVy;
 
-    if (wrapBoid(boid, width, height)) {
-      boid.trailStart = 0;
-      boid.trailLength = 0;
+    let nextX = boidX + boidVx * delta;
+    let nextY = boidY + boidVy * delta;
+    let wrapped = false;
+    if (nextX < -WRAP_MARGIN) {
+      nextX = wrapWidth;
+      wrapped = true;
+    } else if (nextX > wrapWidth) {
+      nextX = -WRAP_MARGIN;
+      wrapped = true;
     }
-    pushTrailPoint(boid);
+    if (nextY < -WRAP_MARGIN) {
+      nextY = wrapHeight;
+      wrapped = true;
+    } else if (nextY > wrapHeight) {
+      nextY = -WRAP_MARGIN;
+      wrapped = true;
+    }
+    x[index] = nextX;
+    y[index] = nextY;
+
+    // A wrapped boid drops its trail so no segment stretches across the seam.
+    let start = wrapped ? 0 : trailStart[index];
+    let length = wrapped ? 0 : trailLength[index];
+    const base = index * TRAIL_CAPACITY * 2;
+    const point = base + (((start + length) % TRAIL_CAPACITY) << 1);
+    trail[point] = nextX;
+    trail[point + 1] = nextY;
+    if (length < TRAIL_CAPACITY) length += 1;
+    else start = (start + 1) % TRAIL_CAPACITY;
+    trailStart[index] = start;
+    trailLength[index] = length;
   }
 
   return totalNeighbors;
