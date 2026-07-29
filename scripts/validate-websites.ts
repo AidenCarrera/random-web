@@ -8,7 +8,7 @@ import { WEBSITES } from "../src/lib/websites.ts";
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
 const appDirectory = path.join(repositoryRoot, "src", "app");
-const reservedPageRoutes = new Set(["dev"]);
+const reservedPageRoutes = new Set(["dev", "privacy"]);
 const routePattern = /^\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const isoDatePattern = /^\d{4}-\d{2}-\d{2}$/;
 

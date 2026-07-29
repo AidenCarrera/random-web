@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Playwright artifacts: ESLint does not read .gitignore, so without these
+    // a local test run leaves a bundled HTML report for `pnpm lint` to crawl.
+    "playwright-report/**",
+    "test-results/**",
   ]),
 ]);
 

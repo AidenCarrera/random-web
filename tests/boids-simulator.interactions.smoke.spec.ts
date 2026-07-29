@@ -140,9 +140,7 @@ test.describe("Boids Simulator interactions", () => {
     expect(getFrameScale(BASE_FRAME_DURATION / 2)).toBeCloseTo(0.5, 5);
   });
 
-  test("previews a snapshot before downloading it", async ({
-    page,
-  }) => {
+  test("previews a snapshot before downloading it", async ({ page }) => {
     let downloadCount = 0;
     page.on("download", () => {
       downloadCount += 1;

@@ -2,10 +2,20 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+# Only one run per branch or pull request; superseded runs are cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: "1"
 
 jobs:
   validate:
@@ -46,7 +56,18 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
+      # Runs against the production build from the step above, so the
+      # Playwright config must not fall back to starting a dev server.
       - name: Smoke test websites
+        id: smoke
         run: pnpm test:smoke
         env:
           SMOKE_SERVER_COMMAND: pnpm start --hostname 127.0.0.1 --port 3100
+
+      - name: Upload Playwright report
+        if: ${{ failure() && steps.smoke.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

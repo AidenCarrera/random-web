@@ -143,7 +143,7 @@ test.describe("Repository Visualizer loading and playback", () => {
     await page.getByRole("button", { name: "Download PNG" }).click();
 
     await expect(
-      page.getByRole("heading", { name: "Repository visualization" }),
+      page.getByRole("heading", { name: "Repository Snapshot" }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: "Download PNG" }),

@@ -71,7 +71,7 @@ Install Playwright's Chromium browser after installing dependencies:
 pnpm exec playwright install chromium
 ```
 
-`pnpm test:smoke` reuses a running development server or starts one on port 3100. It checks every registered site for a successful response, a document title, console errors, and uncaught page errors. There are also interaction tests for Fractal Explorer, Olo Terminal, Solar System, and Zen Garden.
+`pnpm test:smoke` reuses a running development server or starts one on port 3100. It checks every registered site for a successful response, a document title, console errors, and uncaught page errors. There are also interaction tests for Algo Race, Boids Simulator, Falling Sand, Fluid Simulation, Fractal Explorer, Lofi Pixel Study, Olo Terminal, Repository Visualizer, Solar System, and Zen Garden, plus a server-render check for the home page and the not-found route.
 
 ```bash
 # Limit the registry-wide route checks to sites changed since HEAD
@@ -87,7 +87,7 @@ pnpm test:smoke --headed
 pnpm test:smoke:production
 ```
 
-The GitHub Actions workflow runs a frozen install, formatting, linting, type checking, website validation, a production build, and the Chromium smoke tests on pushes and pull requests. The smoke tests run against the production build made earlier in the job.
+The GitHub Actions workflow runs a frozen install, formatting, linting, type checking, website validation, a production build, and the Chromium smoke tests on pushes to `main` and on pull requests. The smoke tests run against the production build made earlier in the job, and the Playwright HTML report is uploaded as an artifact when they fail.
 
 ## Opening sites manually
 

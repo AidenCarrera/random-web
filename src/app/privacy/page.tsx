@@ -141,7 +141,8 @@ export default function PrivacyPolicy() {
 
         <Section title="Children">
           <p>
-            Random Webs does not knowingly collect personal information from children.
+            Random Webs does not knowingly collect personal information from
+            children.
           </p>
         </Section>
 

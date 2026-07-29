@@ -280,9 +280,7 @@ test.describe("Falling Sand interactions", () => {
     await expect(page.getByText("Saved creation loaded.")).toBeVisible();
   });
 
-  test("previews a PNG before downloading it", async ({
-    page,
-  }) => {
+  test("previews a PNG before downloading it", async ({ page }) => {
     let downloadCount = 0;
     page.on("download", () => {
       downloadCount += 1;

@@ -72,8 +72,9 @@ export function useFractalExplorer() {
   const [showCoordinates, setShowCoordinates] = useState<boolean>(true);
   const [showWelcomePrompt, setShowWelcomePrompt] = useState<boolean>(true);
   const [activeLandmarkIndex, setActiveLandmarkIndex] = useState<number>(-1);
-  const [exportSnapshot, setExportSnapshot] =
-    useState<ExportSnapshot | null>(null);
+  const [exportSnapshot, setExportSnapshot] = useState<ExportSnapshot | null>(
+    null,
+  );
   const isTouchDevice = useSyncExternalStore(
     subscribeToTouchCapability,
     getTouchCapabilitySnapshot,
@@ -606,11 +607,9 @@ export function useFractalExplorer() {
     if (!exportSnapshot) return;
 
     try {
-      const pngFile = new File(
-        [exportSnapshot.blob],
-        exportSnapshot.fileName,
-        { type: "image/png" },
-      );
+      const pngFile = new File([exportSnapshot.blob], exportSnapshot.fileName, {
+        type: "image/png",
+      });
       const canShareFile =
         "share" in navigator &&
         "canShare" in navigator &&
