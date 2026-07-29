@@ -13,7 +13,7 @@ export type WebsiteEntry = {
 export const WEBSITES: WebsiteEntry[] = [
   {
     path: "/algo-race",
-    lastModified: "2026-07-15",
+    lastModified: "2026-07-28",
     title: "Algo Race",
     blurb: "Algorithms race to the finish.",
     accent: "from-cyan-200/80 via-sky-300/70 to-blue-500/70",
@@ -37,7 +37,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/ascii-vision",
-    lastModified: "2026-07-15",
+    lastModified: "2026-07-28",
     title: "ASCII Vision",
     blurb: "Video in text.",
     accent: "from-lime-300/80 via-emerald-400/70 to-teal-500/70",
@@ -61,7 +61,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/boids-simulator",
-    lastModified: "2026-07-13",
+    lastModified: "2026-07-28",
     title: "Boids Simulator",
     blurb: "Emergent boid movement.",
     accent: "from-lime-200/80 via-green-300/70 to-emerald-500/70",
@@ -97,7 +97,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/emoji-rain",
-    lastModified: "2026-07-12",
+    lastModified: "2026-07-28",
     title: "Emoji Rain",
     blurb: "Falling icons.",
     accent: "from-sky-200/80 via-cyan-300/70 to-blue-500/70",
@@ -121,7 +121,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/falling-sand",
-    lastModified: "2026-07-15",
+    lastModified: "2026-07-28",
     title: "Falling Sand",
     blurb: "A reactive particle sandbox.",
     accent: "from-amber-200/80 via-orange-300/70 to-red-500/70",
@@ -145,7 +145,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/fluid-simulation",
-    lastModified: "2026-07-15",
+    lastModified: "2026-07-28",
     title: "Fluid Simulation",
     blurb: "Stir a field of glowing particles.",
     accent: "from-fuchsia-300/80 via-violet-400/70 to-cyan-400/75",
@@ -157,7 +157,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/fractal-explorer",
-    lastModified: "2026-07-16",
+    lastModified: "2026-07-28",
     title: "Fractal Explorer",
     blurb: "Infinite geometric patterns.",
     accent: "from-violet-300/80 via-indigo-400/70 to-sky-500/70",
@@ -193,7 +193,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/lava-lamp",
-    lastModified: "2026-07-12",
+    lastModified: "2026-07-16",
     title: "Lava Lamp",
     blurb: "A simulated lava lamp.",
     accent: "from-amber-200/80 via-orange-300/70 to-red-500/70",
@@ -205,7 +205,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/lofi-pixel-study",
-    lastModified: "2026-07-15",
+    lastModified: "2026-07-28",
     title: "Lofi Pixel Study",
     blurb: "Music and pixels.",
     accent: "from-cyan-200/80 via-blue-300/70 to-indigo-500/70",
@@ -289,7 +289,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/pad-synth",
-    lastModified: "2026-07-15",
+    lastModified: "2026-07-16",
     title: "Pad Synth",
     blurb: "An atmospheric synthesizer.",
     accent: "from-indigo-200/80 via-violet-300/70 to-fuchsia-500/70",
@@ -325,7 +325,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/pixel-art",
-    lastModified: "2026-07-12",
+    lastModified: "2026-07-16",
     title: "Pixel Art",
     blurb: "A small canvas.",
     accent: "from-rose-200/80 via-orange-300/70 to-amber-500/70",
@@ -337,7 +337,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/polyrhythm-visualizer",
-    lastModified: "2026-07-12",
+    lastModified: "2026-07-29",
     title: "Polyrhythm Visualizer",
     blurb: "Overlapping time signatures.",
     accent: "from-purple-200/80 via-indigo-300/70 to-cyan-500/70",
@@ -361,7 +361,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/solar-system",
-    lastModified: "2026-07-15",
+    lastModified: "2026-07-16",
     title: "Solar System",
     blurb: "Orbital mechanics.",
     accent: "from-sky-200/80 via-indigo-300/70 to-violet-500/70",
@@ -385,7 +385,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/style-pet",
-    lastModified: "2026-07-15",
+    lastModified: "2026-07-16",
     title: "Style Pet",
     blurb: "Dress a digital pet.",
     accent: "from-pink-200/80 via-rose-300/70 to-purple-400/70",
@@ -397,7 +397,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/submit-to-void",
-    lastModified: "2026-07-12",
+    lastModified: "2026-07-28",
     title: "Submit to Void",
     blurb: "Throw text away.",
     accent: "from-slate-300/80 via-zinc-500/70 to-black/70",
@@ -433,7 +433,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/zen-garden",
-    lastModified: "2026-07-15",
+    lastModified: "2026-07-28",
     title: "Zen Garden",
     blurb: "Grow your garden.",
     accent: "from-stone-100/90 via-emerald-200/80 to-teal-400/70",
@@ -447,4 +447,4 @@ export const WEBSITES: WebsiteEntry[] = [
 
 export const RANDOM_WEBSITE_PATHS = WEBSITES.map((website) => website.path);
 
-export const SITE_LAST_MODIFIED = "2026-07-15";
+export const SITE_LAST_MODIFIED = "2026-07-26";

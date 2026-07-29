@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import * as Tone from "tone";
@@ -65,6 +66,12 @@ const RHYTHMS: Rhythm[] = [
 const RHYTHM_BY_COUNT = new Map(
   RHYTHMS.map((rhythm) => [rhythm.count, rhythm]),
 );
+const MODES: { value: ViewMode; label: string; icon: ReactNode }[] = [
+  { value: "circle", label: "Circle", icon: <CircleDot /> },
+  { value: "timeline", label: "Timeline", icon: <Rows3 /> },
+  { value: "bloom", label: "Bloom", icon: <Sparkles /> },
+  { value: "orbit3d", label: "3D", icon: <Orbit /> },
+];
 const DEFAULT_RHYTHMS = [3, 4];
 const CYCLE_BEATS = 4;
 const BPM_MIN = 40;
@@ -406,12 +413,7 @@ export default function PolyrhythmVisualizer() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target?.isContentEditable
-      )
+      if (event.repeat || event.ctrlKey || event.metaKey || event.altKey)
         return;
 
       const key = event.key.toLowerCase();
@@ -427,8 +429,8 @@ export default function PolyrhythmVisualizer() {
       }
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
   }, [reset, togglePlay]);
 
   useEffect(
@@ -447,8 +449,11 @@ export default function PolyrhythmVisualizer() {
     activePulses,
   };
 
+  const bpmFill = ((bpm - BPM_MIN) / (BPM_MAX - BPM_MIN)) * 100;
+  const activeMode = MODES.find((entry) => entry.value === mode);
+
   return (
-    <div className="min-h-screen overflow-hidden bg-[#0d0c12] font-sans text-[#fafaf9]">
+    <div className="min-h-screen overflow-hidden bg-[#0d0c12] font-sans text-[#faf9f6]">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(145deg,#17121b_0%,#0d1317_48%,#171018_100%)]" />
         <div className="absolute -left-64 -top-80 h-224 w-4xl rounded-full bg-[radial-gradient(circle,rgba(252,140,116,0.12)_0%,rgba(252,140,116,0.04)_38%,transparent_70%)] blur-2xl" />
@@ -491,23 +496,28 @@ export default function PolyrhythmVisualizer() {
         />
       </div>
 
-      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-3 rounded-2xl border border-[#faf9f6]/12 bg-[#17141d]/75 p-4 shadow-2xl shadow-black/35 backdrop-blur-xl md:flex-row md:items-center md:justify-between">
-          <h1 className="mt-1 text-3xl font-black uppercase tracking-[0.12em] text-[#faf9f6] sm:text-4xl">
+      <main className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+        <header className="flex flex-col gap-4 rounded-2xl border border-[#faf9f6]/14 bg-[#141219] p-4 shadow-[inset_0_1px_0_rgba(250,249,246,0.08),0_20px_44px_-28px_rgba(0,0,0,0.95)] sm:p-5 md:flex-row md:items-center md:justify-between">
+          <h1 className="text-2xl font-black uppercase leading-none tracking-[0.13em] text-[#faf9f6] sm:text-3xl">
             Polyrhythm Visualizer
           </h1>
+
           <div className="flex flex-wrap items-center gap-2">
-            <IconButton
-              label={isPlaying ? "Pause" : "Play"}
-              onClick={togglePlay}
+            <button
+              onClick={() => void togglePlay()}
+              title={isPlaying ? "Pause" : "Play"}
+              aria-label={isPlaying ? "Pause" : "Play"}
+              className="flex h-11 items-center gap-2 rounded-xl border border-[#55c991] bg-[#55c991] px-5 text-xs font-black uppercase tracking-[0.2em] text-[#17131a] transition-all hover:-translate-y-0.5 hover:bg-[#70d6a4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55c991]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#141219] [&>svg]:h-4 [&>svg]:w-4"
             >
               {isPlaying ? <Pause /> : <Play />}
-            </IconButton>
+              <span>{isPlaying ? "Pause" : "Play"}</span>
+            </button>
             <IconButton label="Reset" onClick={reset}>
               <RotateCcw />
             </IconButton>
             <IconButton
               label={isMuted ? "Unmute" : "Mute"}
+              active={isMuted}
               onClick={() => setIsMuted((value) => !value)}
             >
               {isMuted ? <VolumeX /> : <Volume2 />}
@@ -515,38 +525,52 @@ export default function PolyrhythmVisualizer() {
           </div>
         </header>
 
-        <section className="grid flex-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="flex flex-col gap-4">
-            <Panel title="BPM" icon={<Gauge />}>
-              <div className="flex items-center gap-3">
+        <section className="grid flex-1 gap-5 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="flex flex-col gap-5">
+            <Panel
+              title="Tempo"
+              icon={<Gauge />}
+              aside={
+                <span className="font-mono text-[11px] tabular-nums text-[#d8cabc]/60">
+                  {cycleSeconds(bpm).toFixed(2)}s / cycle
+                </span>
+              }
+            >
+              <div className="flex items-baseline gap-2">
                 <input
-                  type="range"
-                  min={BPM_MIN}
-                  max={BPM_MAX}
-                  value={bpm}
-                  onChange={(event) => {
-                    const nextBpm = Number(event.target.value);
-                    setBpm(nextBpm);
-                    setBpmInput(String(nextBpm));
+                  value={bpmInput}
+                  onChange={(event) => setBpmInput(event.target.value)}
+                  onBlur={commitBpm}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter") return;
+                    commitBpm();
+                    event.currentTarget.blur();
                   }}
-                  className={`${styles.slider} w-full`}
-                  aria-label="BPM"
+                  className="w-[3.4ch] border-b-2 border-transparent bg-transparent text-4xl font-black leading-none tabular-nums text-[#faf9f6] outline-none transition-colors focus:border-[#55c991]"
+                  inputMode="numeric"
+                  aria-label="BPM value"
                 />
-                <div className="flex h-11 w-24 items-center rounded-xl border border-[#faf9f6]/12 bg-[#0e0d13]/55 px-2">
-                  <input
-                    value={bpmInput}
-                    onChange={(event) => setBpmInput(event.target.value)}
-                    onBlur={commitBpm}
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter") return;
-                      commitBpm();
-                      event.currentTarget.blur();
-                    }}
-                    className="w-full bg-transparent text-center text-lg font-black tabular-nums text-[#faf9f6] outline-none"
-                    inputMode="numeric"
-                    aria-label="BPM value"
-                  />
-                </div>
+                <span className="text-[11px] font-black uppercase tracking-[0.24em] text-[#d8cabc]/70">
+                  bpm
+                </span>
+              </div>
+              <input
+                type="range"
+                min={BPM_MIN}
+                max={BPM_MAX}
+                value={bpm}
+                onChange={(event) => {
+                  const nextBpm = Number(event.target.value);
+                  setBpm(nextBpm);
+                  setBpmInput(String(nextBpm));
+                }}
+                className={`${styles.slider} mt-4 w-full`}
+                style={{ "--fill": `${bpmFill}%` } as CSSProperties}
+                aria-label="BPM"
+              />
+              <div className="mt-2 flex justify-between font-mono text-[10px] tabular-nums text-[#faf9f6]/35">
+                <span>{BPM_MIN}</span>
+                <span>{BPM_MAX}</span>
               </div>
             </Panel>
 
@@ -558,20 +582,10 @@ export default function PolyrhythmVisualizer() {
                     <button
                       key={rhythm.count}
                       onClick={() => toggleRhythm(rhythm.count)}
-                      className="relative h-12 rounded-xl border text-base font-black tabular-nums transition-all duration-200 hover:-translate-y-0.5"
-                      style={{
-                        color: selected ? "#17131a" : rhythm.color,
-                        background: selected
-                          ? rhythm.color
-                          : "rgba(15,13,19,0.54)",
-                        borderColor: selected
-                          ? rhythm.color
-                          : "rgba(250,249,246,0.11)",
-                        boxShadow: selected
-                          ? `0 0 22px ${rhythm.glow}`
-                          : "none",
-                      }}
-                      title={`${rhythm.count} pulses`}
+                      className={`${styles.pad} ${selected ? styles.padActive : ""} h-12 text-base font-black tabular-nums`}
+                      style={{ "--pad-color": rhythm.color } as CSSProperties}
+                      title={`${rhythm.count} pulses per cycle`}
+                      aria-pressed={selected}
                     >
                       {rhythm.count}
                     </button>
@@ -580,34 +594,56 @@ export default function PolyrhythmVisualizer() {
               </div>
             </Panel>
 
-            <Panel title="View">
+            <Panel title="View" icon={<Orbit />}>
               <div className="grid grid-cols-2 gap-2">
-                {(
-                  [
-                    ["circle", "Circle", <CircleDot key="circle" />],
-                    ["timeline", "Timeline", <Rows3 key="timeline" />],
-                    ["bloom", "Bloom", <Sparkles key="bloom" />],
-                    ["orbit3d", "3D", <Orbit key="orbit3d" />],
-                  ] as const
-                ).map(([value, label, icon]) => (
+                {MODES.map((entry) => (
                   <ModeButton
-                    key={value}
-                    label={label}
-                    active={mode === value}
-                    onClick={() => setMode(value)}
+                    key={entry.value}
+                    label={entry.label}
+                    active={mode === entry.value}
+                    onClick={() => setMode(entry.value)}
                   >
-                    {icon}
+                    {entry.icon}
                   </ModeButton>
                 ))}
               </div>
             </Panel>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-[#faf9f6]/10 bg-[#141219] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#d8cabc]/55">
+              <span className="flex items-center gap-1.5">
+                <Kbd>Space</Kbd> play
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Kbd>M</Kbd> mute
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Kbd>R</Kbd> reset
+              </span>
+            </div>
           </aside>
 
-          <section className="flex min-h-175 flex-col rounded-2xl border border-[#faf9f6]/12 bg-[#14131a]/70 p-4 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-6">
-            <div className="mb-2 flex justify-end font-mono text-xs text-[#d8cabc]/55">
-              Cycle {(progress * 100).toFixed(1)}%
+          <section className="flex min-h-175 flex-col overflow-hidden rounded-2xl border border-[#faf9f6]/14 bg-[#141219] shadow-[inset_0_1px_0_rgba(250,249,246,0.08),0_24px_50px_-30px_rgba(0,0,0,0.95)]">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-5">
+              <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.22em] text-[#faf9f6]/80">
+                <span className="[&>svg]:h-3.5 [&>svg]:w-3.5 text-[#55c991]">
+                  {activeMode?.icon}
+                </span>
+                {activeMode?.label}
+              </div>
+              <div className="flex items-center gap-4 font-mono text-[11px] tabular-nums text-[#d8cabc]/55">
+                <span>{bpm} BPM</span>
+                <span className="text-[#faf9f6]">
+                  {(progress * 100).toFixed(1)}%
+                </span>
+              </div>
             </div>
-            <div className="flex flex-1 items-center justify-center rounded-xl border border-[#faf9f6]/8 bg-[#0d0d13]/52 px-2 py-4 shadow-inner shadow-black/30 sm:px-4">
+            <div className="relative h-0.5 w-full bg-[#faf9f6]/10">
+              <div
+                className="absolute inset-y-0 left-0 bg-[#55c991]"
+                style={{ width: `${progress * 100}%` }}
+              />
+            </div>
+            <div className="flex flex-1 items-center justify-center px-2 py-4 sm:px-4">
               {mode === "circle" && <CircularVisualizer {...visualizerProps} />}
               {mode === "timeline" && (
                 <TimelineVisualizer {...visualizerProps} />
@@ -738,12 +774,16 @@ function TimelineVisualizer({
   activePulses,
 }: VisualizerProps) {
   return (
-    <div className="relative flex min-h-140 w-full max-w-245 flex-col justify-center gap-5 overflow-hidden rounded-lg border border-white/8 bg-white/2.5 p-5 sm:p-8">
-      <div
-        className="absolute bottom-8 top-8 w-px bg-white shadow-[0_0_18px_rgba(255,255,255,0.75)]"
-        style={{ left: `calc(96px + (100% - 128px) * ${progress})` }}
-      />
-      <div className="absolute bottom-8 top-8 left-24 w-px bg-white/30" />
+    <div className="relative flex min-h-140 w-full max-w-245 flex-col justify-center gap-5 overflow-hidden p-5 sm:p-8">
+      <div className="pointer-events-none absolute inset-0 grid grid-cols-[80px_1fr] gap-6 p-5 sm:p-8">
+        <div />
+        <div className="relative h-full">
+          <div
+            className="absolute bottom-2 top-2 w-px bg-white shadow-[0_0_18px_rgba(255,255,255,0.75)]"
+            style={{ left: `${progress * 100}%` }}
+          />
+        </div>
+      </div>
 
       {rhythms.map((rhythm) => (
         <div key={rhythm.count} className="grid grid-cols-[80px_1fr] gap-6">
@@ -934,7 +974,9 @@ function Orbit3DVisualizer({ rhythms, activePulses }: VisualizerProps) {
     if (!mount) return;
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x0d0c12, 9, 22);
+    // Match the stage surface so distant nodes fade into it, not to a
+    // different dark that would outline the canvas.
+    scene.fog = new THREE.Fog(0x141219, 9, 22);
 
     // A raised three-quarter view makes the stacked rhythm rings read as
     // concentric orbits instead of collapsing into an edge-on line.
@@ -949,11 +991,11 @@ function Orbit3DVisualizer({ rhythms, activePulses }: VisualizerProps) {
 
     const group = new THREE.Group();
     scene.add(group, new THREE.AmbientLight(0xfaf9f6, 1.05));
-    const warmLight = new THREE.PointLight(0xfc8c74, 24, 24);
-    warmLight.position.set(1, 5, 6);
+    const accentLight = new THREE.PointLight(0x55c991, 24, 24);
+    accentLight.position.set(1, 5, 6);
     const coolLight = new THREE.PointLight(0x40c4bb, 16, 20);
     coolLight.position.set(-5, 1, -3);
-    scene.add(warmLight, coolLight);
+    scene.add(accentLight, coolLight);
 
     const state = {
       group,
@@ -974,12 +1016,14 @@ function Orbit3DVisualizer({ rhythms, activePulses }: VisualizerProps) {
     observer.observe(mount);
     resize();
 
-    const clock = new THREE.Clock();
+    const timer = new THREE.Timer();
+    timer.connect(document);
     const orbitRadius = 12.1;
     const initialOrbitAngle = Math.atan2(7.4, 9.6);
     let frame = 0;
-    const animate = () => {
-      const elapsed = clock.getElapsedTime();
+    const animate = (timestamp?: number) => {
+      timer.update(timestamp);
+      const elapsed = timer.getElapsed();
       const orbitAngle = initialOrbitAngle + elapsed * 0.13;
 
       // Use wall-clock time rather than musical progress so this orbit never
@@ -1016,6 +1060,7 @@ function Orbit3DVisualizer({ rhythms, activePulses }: VisualizerProps) {
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      timer.dispose();
       disposeObject(scene);
       renderer.dispose();
       renderer.domElement.remove();
@@ -1085,8 +1130,7 @@ function Orbit3DVisualizer({ rhythms, activePulses }: VisualizerProps) {
   }, [rhythms]);
 
   return (
-    <div className="relative h-full min-h-140 w-full overflow-hidden rounded-lg">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(232,160,145,0.12),transparent_38%),radial-gradient(circle_at_70%_70%,rgba(98,174,168,0.1),transparent_42%),linear-gradient(180deg,rgba(243,232,216,0.035),transparent)]" />
+    <div className="relative h-full min-h-140 w-full overflow-hidden">
       <div ref={mountRef} className="absolute inset-0" />
     </div>
   );
@@ -1095,19 +1139,26 @@ function Orbit3DVisualizer({ rhythms, activePulses }: VisualizerProps) {
 function Panel({
   title,
   icon,
+  aside,
   children,
 }: {
   title: string;
   icon?: ReactNode;
+  aside?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-[#faf9f6]/11 bg-[#17141d]/70 p-4 shadow-lg shadow-black/10 backdrop-blur-xl">
-      <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-[#d8cabc]/60">
-        {icon && (
-          <span className="text-[#faf9f6] [&>svg]:h-4 [&>svg]:w-4">{icon}</span>
-        )}
-        {title}
+    <div className="rounded-2xl border border-[#faf9f6]/14 bg-[#141219] p-4 shadow-[inset_0_1px_0_rgba(250,249,246,0.07),0_16px_34px_-26px_rgba(0,0,0,0.95)]">
+      <div className="mb-4 flex items-center justify-between gap-3 border-b border-[#faf9f6]/10 pb-3">
+        <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.26em] text-[#faf9f6]/80">
+          {icon && (
+            <span className="text-[#55c991] [&>svg]:h-3.5 [&>svg]:w-3.5">
+              {icon}
+            </span>
+          )}
+          {title}
+        </div>
+        {aside}
       </div>
       {children}
     </div>
@@ -1117,10 +1168,12 @@ function Panel({
 function IconButton({
   children,
   label,
+  active = false,
   onClick,
 }: {
   children: ReactNode;
   label: string;
+  active?: boolean;
   onClick: () => void | Promise<void>;
 }) {
   return (
@@ -1128,7 +1181,12 @@ function IconButton({
       onClick={() => void onClick()}
       title={label}
       aria-label={label}
-      className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#faf9f6]/12 bg-[#211b24]/72 text-[#faf9f6] transition-all hover:-translate-y-0.5 hover:border-[#fc8c74]/45 hover:bg-[#2a2029]/85 [&>svg]:h-4 [&>svg]:w-4"
+      aria-pressed={active}
+      className={`flex h-11 w-11 items-center justify-center rounded-xl border transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55c991]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#141219] [&>svg]:h-4 [&>svg]:w-4 ${
+        active
+          ? "border-[#55c991]/60 bg-[#55c991]/16 text-[#55c991]"
+          : "border-[#faf9f6]/18 bg-[#221d29] text-[#faf9f6] hover:border-[#faf9f6]/40 hover:bg-[#2d2634]"
+      }`}
     >
       {children}
     </button>
@@ -1149,16 +1207,19 @@ function ModeButton({
   return (
     <button
       onClick={onClick}
-      className="flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-xs font-black uppercase tracking-[0.18em] transition-all hover:-translate-y-0.5 [&>svg]:h-4 [&>svg]:w-4"
-      style={{
-        background: active ? "#faf9f6" : "rgba(15,13,19,0.5)",
-        borderColor: active ? "#faf9f6" : "rgba(250,249,246,0.11)",
-        color: active ? "#17131a" : "rgba(250,249,246,0.68)",
-        boxShadow: active ? "0 10px 28px rgba(252,140,116,0.13)" : "none",
-      }}
+      aria-pressed={active}
+      className={`${styles.mode} ${active ? styles.modeActive : styles.modeIdle} flex items-center justify-center gap-2 rounded-xl border px-3 py-3 text-[11px] font-black uppercase tracking-[0.16em] [&>svg]:h-4 [&>svg]:w-4`}
     >
       {children}
       <span>{label}</span>
     </button>
+  );
+}
+
+function Kbd({ children }: { children: ReactNode }) {
+  return (
+    <kbd className="rounded-md border border-[#faf9f6]/22 bg-[#1b1823] px-1.5 py-0.5 font-mono text-[10px] font-bold tracking-normal text-[#faf9f6]">
+      {children}
+    </kbd>
   );
 }
