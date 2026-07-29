@@ -162,6 +162,14 @@ export const LIQUID_DENSITY: Partial<Record<Material, number>> = {
   [Material.MUD]: 5,
 };
 
+export const LIQUID_SPREAD: Partial<Record<Material, number>> = {
+  [Material.OIL]: 8,
+  [Material.LAVA]: 3,
+  [Material.MUD]: 2,
+};
+
+export const DEFAULT_LIQUID_SPREAD = 6;
+
 export const isLiquid = (material: Material) => material in LIQUID_DENSITY;
 
 export const isGas = (material: Material) =>
@@ -172,6 +180,17 @@ export const isGas = (material: Material) =>
 
 export const isHeat = (material: Material) =>
   material === Material.FIRE || material === Material.LAVA;
+
+export const isPlantLike = (material: Material) =>
+  material === Material.PLANT ||
+  material === Material.FLOWER ||
+  material === Material.SPROUT;
+
+/** Water in any of its solid or liquid forms. */
+export const isWaterLike = (material: Material) =>
+  material === Material.WATER ||
+  material === Material.ICE ||
+  material === Material.SNOW;
 
 export const GROWTH_COOLDOWN = 12;
 export const GROWTH_SHIFT = 4;
@@ -196,6 +215,15 @@ export const explosionRadius = (material: Material) => {
       return 0;
   }
 };
+
+/** Materials a nearby heat source can set alight. */
+export const isFlammable = (material: Material) =>
+  isPlantLike(material) ||
+  material === Material.SEED ||
+  material === Material.OIL ||
+  material === Material.COAL ||
+  material === Material.FUSE ||
+  explosionRadius(material) > 0;
 
 export const randomInt = (maximum: number) =>
   Math.floor(Math.random() * maximum);
