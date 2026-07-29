@@ -61,7 +61,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/boids-simulator",
-    lastModified: "2026-07-28",
+    lastModified: "2026-07-29",
     title: "Boids Simulator",
     blurb: "Emergent boid movement.",
     accent: "from-lime-200/80 via-green-300/70 to-emerald-500/70",
@@ -73,7 +73,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/click-speed-test",
-    lastModified: "2026-07-13",
+    lastModified: "2026-07-29",
     title: "Click Speed Test",
     blurb: "A clicks per second test.",
     accent: "from-yellow-200/80 via-orange-300/70 to-red-400/70",
@@ -121,7 +121,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/falling-sand",
-    lastModified: "2026-07-28",
+    lastModified: "2026-07-29",
     title: "Falling Sand",
     blurb: "A reactive particle sandbox.",
     accent: "from-amber-200/80 via-orange-300/70 to-red-500/70",
@@ -325,7 +325,7 @@ export const WEBSITES: WebsiteEntry[] = [
   },
   {
     path: "/pixel-art",
-    lastModified: "2026-07-16",
+    lastModified: "2026-07-29",
     title: "Pixel Art",
     blurb: "A small canvas.",
     accent: "from-rose-200/80 via-orange-300/70 to-amber-500/70",
