@@ -37,6 +37,8 @@ type Rhythm = {
 type VisualizerProps = {
   rhythms: Rhythm[];
   progress: number;
+  /** Cycles completed since the last reset, fractional and never wrapping. */
+  turns: number;
   activePulses: Set<PulseKey>;
 };
 
@@ -186,6 +188,7 @@ export default function PolyrhythmVisualizer() {
   const [isMuted, setIsMuted] = useState(false);
   const [mode, setMode] = useState<ViewMode>("circle");
   const [progress, setProgress] = useState(0);
+  const [turns, setTurns] = useState(0);
   const [activePulses, setActivePulses] = useState<Set<PulseKey>>(new Set());
 
   const engineRef = useRef<ClickEngine | null>(null);
@@ -194,6 +197,7 @@ export default function PolyrhythmVisualizer() {
   const startTimeRef = useRef(0);
   const cyclePositionRef = useRef(0);
   const progressRef = useRef(0);
+  const turnsRef = useRef(0);
   const lastElapsedRef = useRef(0);
 
   const rhythmsRef = useLatest(activeRhythms);
@@ -284,10 +288,16 @@ export default function PolyrhythmVisualizer() {
       const visualElapsed = Math.max(0, elapsed - engine.latency);
       const nextProgress = (visualElapsed % duration) / duration;
 
+      // Accumulate cycles instead of deriving them from elapsed time: tempo
+      // changes rebase the clock, and visuals that spin must not jump with it.
+      const step = nextProgress - progressRef.current;
+      turnsRef.current += step < 0 ? step + 1 : step;
+
       triggerPulses(lastElapsedRef.current, elapsed);
       lastElapsedRef.current = elapsed;
       progressRef.current = nextProgress;
       setProgress(nextProgress);
+      setTurns(turnsRef.current);
       rafRef.current = requestAnimationFrame(tick);
     };
 
@@ -321,7 +331,9 @@ export default function PolyrhythmVisualizer() {
     cyclePositionRef.current = 0;
     lastElapsedRef.current = playingRef.current ? -0.001 : 0;
     progressRef.current = 0;
+    turnsRef.current = 0;
     setProgress(0);
+    setTurns(0);
     clearPulseState();
     engine?.silence();
 
@@ -428,7 +440,12 @@ export default function PolyrhythmVisualizer() {
     [clearPulseState, stopLoop],
   );
 
-  const visualizerProps = { rhythms: activeRhythmData, progress, activePulses };
+  const visualizerProps = {
+    rhythms: activeRhythmData,
+    progress,
+    turns,
+    activePulses,
+  };
 
   return (
     <div className="min-h-screen overflow-hidden bg-[#0d0c12] font-sans text-[#fafaf9]">
@@ -773,12 +790,20 @@ function TimelineVisualizer({
   );
 }
 
-function BloomVisualizer({ rhythms, progress, activePulses }: VisualizerProps) {
+function BloomVisualizer({
+  rhythms,
+  progress,
+  turns,
+  activePulses,
+}: VisualizerProps) {
   const width = 960;
   const height = 680;
   const centerX = width / 2;
   const centerY = height / 2;
   const phase = progress * TAU;
+  // Driven by total turns rather than the wrapping cycle progress, so the
+  // shapes keep rotating instead of snapping back on every downbeat.
+  const spinPhase = turns * TAU;
 
   return (
     <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
@@ -806,7 +831,7 @@ function BloomVisualizer({ rhythms, progress, activePulses }: VisualizerProps) {
 
         {rhythms.map((rhythm, index) => {
           const radius = 92 + (index / Math.max(1, rhythms.length - 1)) * 286;
-          const spin = phase * (index % 2 ? -0.12 : 0.12);
+          const spin = spinPhase * (index % 2 ? -0.12 : 0.12);
           const points = range(rhythm.count).map((pulse) => {
             const angle = (pulse / rhythm.count) * TAU - Math.PI / 2 + spin;
             return {
