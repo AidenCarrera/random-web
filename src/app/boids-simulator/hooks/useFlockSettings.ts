@@ -21,7 +21,12 @@ export function useFlockSettings(usesTouchControls: boolean) {
     DEFAULT_FLOCK_PREFERENCES,
     parseFlockPreferences,
   );
-  const { chosePopulation, preset: activePreset, settings } = preferences;
+  const {
+    bounceEdges,
+    chosePopulation,
+    preset: activePreset,
+    settings,
+  } = preferences;
 
   const populationMaximum = usesTouchControls
     ? TOUCH_MAX_POPULATION
@@ -38,16 +43,18 @@ export function useFlockSettings(usesTouchControls: boolean) {
     [population, settings],
   );
 
+  // Edge behavior is picked separately from the parameters, so presets leave it alone.
   const selectPreset = useCallback(
     (preset: BoidsPresetName) => {
-      setPreferences({
+      setPreferences((current) => ({
+        ...current,
         settings: {
           ...BOIDS_PRESETS[preset],
           count: Math.min(BOIDS_PRESETS[preset].count, populationMaximum),
         },
         preset,
         chosePopulation: true,
-      });
+      }));
     },
     [populationMaximum, setPreferences],
   );
@@ -66,6 +73,7 @@ export function useFlockSettings(usesTouchControls: boolean) {
         if (key === "maxSpeed" && value < current.settings.minSpeed)
           next.minSpeed = value;
         return {
+          ...current,
           settings: next,
           preset: null,
           chosePopulation: current.chosePopulation || key === "count",
@@ -75,17 +83,32 @@ export function useFlockSettings(usesTouchControls: boolean) {
     [populationMaximum, setPreferences],
   );
 
+  const toggleBounceEdges = useCallback(
+    () =>
+      setPreferences((current) => ({
+        ...current,
+        bounceEdges: !current.bounceEdges,
+      })),
+    [setPreferences],
+  );
+
   const restoreDefaults = useCallback(
-    () => setPreferences(DEFAULT_FLOCK_PREFERENCES),
+    () =>
+      setPreferences((current) => ({
+        ...DEFAULT_FLOCK_PREFERENCES,
+        bounceEdges: current.bounceEdges,
+      })),
     [setPreferences],
   );
 
   return {
     activePreset,
+    bounceEdges,
     effectiveSettings,
     populationMaximum,
     restoreDefaults,
     selectPreset,
+    toggleBounceEdges,
     updateSetting,
   };
 }

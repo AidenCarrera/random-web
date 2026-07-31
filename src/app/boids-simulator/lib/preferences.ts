@@ -10,6 +10,8 @@ export type FlockPreferences = {
   preset: BoidsPresetName | null;
   /** Whether the population slider has been used; touch devices stay light until it is. */
   chosePopulation: boolean;
+  /** Boids reflect off the canvas edges instead of wrapping around them. */
+  bounceEdges: boolean;
 };
 
 export type DisplayPreferences = {
@@ -21,6 +23,7 @@ export const DEFAULT_FLOCK_PREFERENCES: FlockPreferences = {
   settings: DEFAULT_BOIDS_SETTINGS,
   preset: "Balanced",
   chosePopulation: false,
+  bounceEdges: false,
 };
 
 export const DEFAULT_DISPLAY_PREFERENCES: DisplayPreferences = {
@@ -64,6 +67,7 @@ export function parseFlockPreferences(raw: unknown): FlockPreferences | null {
         ? (preset as BoidsPresetName)
         : null,
     chosePopulation: raw.chosePopulation === true,
+    bounceEdges: raw.bounceEdges === true,
   };
 }
 

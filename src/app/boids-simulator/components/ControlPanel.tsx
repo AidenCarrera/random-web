@@ -2,15 +2,17 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 
 import styles from "../styles.module.css";
 import type { BoidsPresetName, BoidsSettings } from "../types";
-import { DisplayToggles } from "./DisplayToggles";
+import { PanelToggles } from "./PanelToggles";
 import { ParameterSliders } from "./ParameterSliders";
 import { PresetPicker } from "./PresetPicker";
 import { SimulationActions } from "./SimulationActions";
 
 type ControlPanelProps = {
   activePreset: BoidsPresetName | null;
+  bounceEdges: boolean;
   collapsed: boolean;
   mobileOpen: boolean;
+  onBounceEdgesToggle: () => void;
   onCollapsedToggle: () => void;
   onDownload: () => void;
   onMobileOpenToggle: () => void;
@@ -34,8 +36,10 @@ type ControlPanelProps = {
 /** Control panel rendered as a side drawer on desktop and a bottom sheet on mobile. */
 export function ControlPanel({
   activePreset,
+  bounceEdges,
   collapsed,
   mobileOpen,
+  onBounceEdgesToggle,
   onCollapsedToggle,
   onDownload,
   onMobileOpenToggle,
@@ -109,7 +113,9 @@ export function ControlPanel({
           settings={settings}
         />
 
-        <DisplayToggles
+        <PanelToggles
+          bounceEdges={bounceEdges}
+          onBounceEdgesToggle={onBounceEdgesToggle}
           onShowStatsToggle={onShowStatsToggle}
           onTrailsToggle={onTrailsToggle}
           showStats={showStats}

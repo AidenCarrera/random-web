@@ -27,6 +27,8 @@ import { SpatialGrid } from "./lib/spatial-grid";
 import type { BoidsCanvasHandle, BoidsMetrics, BoidsSettings } from "./types";
 
 type BoidsCanvasProps = {
+  /** Reflects boids off the canvas edges instead of wrapping them around it. */
+  bounceEdges: boolean;
   onMetrics: (metrics: BoidsMetrics) => void;
   paused: boolean;
   settings: BoidsSettings;
@@ -44,12 +46,13 @@ const pixelRatio = () =>
 
 export const BoidsCanvas = memo(
   forwardRef<BoidsCanvasHandle, BoidsCanvasProps>(function BoidsCanvas(
-    { onMetrics, paused, settings, showStats, trails },
+    { bounceEdges, onMetrics, paused, settings, showStats, trails },
     forwardedRef,
   ) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const flockRef = useRef(createEmptyFlock());
     const reseedRef = useRef(true);
+    const bounceEdgesRef = useLatestRef(bounceEdges);
     const settingsRef = useLatestRef(settings);
     const pausedRef = useLatestRef(paused);
     const showStatsRef = useLatestRef(showStats);
@@ -89,6 +92,7 @@ export const BoidsCanvas = memo(
       // Reused every frame so the loop allocates nothing.
       const step: FlockStep = {
         flock: flockRef.current,
+        bounceEdges: bounceEdgesRef.current,
         delta: 1,
         grid,
         height: 1,
@@ -164,6 +168,7 @@ export const BoidsCanvas = memo(
 
         const flock = flockRef.current;
         step.flock = flock;
+        step.bounceEdges = bounceEdgesRef.current;
         step.delta = delta;
         step.height = height;
         step.settings = currentSettings;
@@ -197,6 +202,7 @@ export const BoidsCanvas = memo(
         renderer.dispose();
       };
     }, [
+      bounceEdgesRef,
       onMetrics,
       pausedRef,
       pointerRef,

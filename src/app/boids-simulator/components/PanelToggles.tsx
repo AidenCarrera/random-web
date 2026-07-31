@@ -1,25 +1,35 @@
 import styles from "../styles.module.css";
 import { ToggleSwitch } from "./ToggleSwitch";
 
-type DisplayTogglesProps = {
+type PanelTogglesProps = {
+  bounceEdges: boolean;
+  onBounceEdgesToggle: () => void;
   onShowStatsToggle: () => void;
   onTrailsToggle: () => void;
   showStats: boolean;
   trails: boolean;
 };
 
-export function DisplayToggles({
+/** Switches for the on/off settings, sitting directly under the parameter sliders. */
+export function PanelToggles({
+  bounceEdges,
+  onBounceEdgesToggle,
   onShowStatsToggle,
   onTrailsToggle,
   showStats,
   trails,
-}: DisplayTogglesProps) {
+}: PanelTogglesProps) {
   return (
     <section>
       <div className={styles.sectionHeading}>
-        <h2>Display</h2>
+        <h2>Settings</h2>
       </div>
       <div className={styles.switchGroup}>
+        <ToggleSwitch
+          checked={bounceEdges}
+          label="Bounce off edges"
+          onToggle={onBounceEdgesToggle}
+        />
         <ToggleSwitch
           checked={trails}
           label="Boid trails"

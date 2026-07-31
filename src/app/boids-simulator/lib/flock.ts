@@ -17,6 +17,8 @@ const POINTER_RADIUS = 280;
 const POINTER_STRENGTH = 0.19;
 /** How far past an edge a boid travels before wrapping to the other side. */
 const WRAP_MARGIN = 10;
+/** Inset of the reflecting walls so a bouncing boid stays fully on screen. */
+const BOUNCE_MARGIN = 6;
 const SCATTER_MIN_SPEED = 3;
 const SCATTER_SPEED_RANGE = 4;
 
@@ -167,6 +169,8 @@ export function scatterFlock(flock: Flock) {
 
 export type FlockStep = {
   flock: Flock;
+  /** Reflects boids off the canvas edges instead of wrapping them around it. */
+  bounceEdges: boolean;
   /** Frame length in 60 Hz steps, from `getFrameScale`. */
   delta: number;
   grid: SpatialGrid;
@@ -181,7 +185,8 @@ export type FlockStep = {
  * Returns total neighbor count for performance metrics.
  */
 export function stepFlock(step: FlockStep) {
-  const { delta, flock, grid, height, pointer, settings, width } = step;
+  const { bounceEdges, delta, flock, grid, height, pointer, settings, width } =
+    step;
   const count = flock.count;
   const { phase, trail, trailLength, trailStart, vx, vy, wander, x, y } = flock;
 
@@ -200,10 +205,15 @@ export function stepFlock(step: FlockStep) {
   const separationRadiusSquared = separationRadius * separationRadius;
   const inverseSeparationRadius =
     separationRadius > 0 ? 1 / separationRadius : 0;
-  const halfWidth = width / 2;
-  const halfHeight = height / 2;
+  // Bouncing has no seam to measure across, so no separation ever beats these.
+  const halfWidth = bounceEdges ? Infinity : width / 2;
+  const halfHeight = bounceEdges ? Infinity : height / 2;
   const wrapWidth = width + WRAP_MARGIN;
   const wrapHeight = height + WRAP_MARGIN;
+  const minBounceX = Math.min(BOUNCE_MARGIN, width / 2);
+  const minBounceY = Math.min(BOUNCE_MARGIN, height / 2);
+  const maxBounceX = width - minBounceX;
+  const maxBounceY = height - minBounceY;
   const pointerActive = pointer.active && pointer.pressed;
   const pointerDirection = pointer.mode === "attract" ? 1 : -1;
 
@@ -234,11 +244,15 @@ export function stepFlock(step: FlockStep) {
     let separationNeighbors = 0;
 
     neighborSearch: for (let r = 0; r < rowSpan; r += 1) {
-      const neighborRow = (row + rowOffsets[r] + rows) % rows;
-      const rowBase = neighborRow * columns;
+      const offsetRow = row + rowOffsets[r];
+      // Off-grid cells only hold neighbors when the world wraps onto itself.
+      if (bounceEdges && (offsetRow < 0 || offsetRow >= rows)) continue;
+      const rowBase = ((offsetRow + rows) % rows) * columns;
       for (let c = 0; c < columnSpan; c += 1) {
-        const neighborColumn = (column + columnOffsets[c] + columns) % columns;
-        const neighborCell = rowBase + neighborColumn;
+        const offsetColumn = column + columnOffsets[c];
+        if (bounceEdges && (offsetColumn < 0 || offsetColumn >= columns))
+          continue;
+        const neighborCell = rowBase + ((offsetColumn + columns) % columns);
         const cellEnd = cellStart[neighborCell + 1] * SORTED_STRIDE;
 
         for (
@@ -361,26 +375,44 @@ export function stepFlock(step: FlockStep) {
     clampSpeed(boidVx, boidVy, minSpeed, maxSpeed, phase[index], velocity);
     boidVx = velocity.x;
     boidVy = velocity.y;
-    vx[index] = boidVx;
-    vy[index] = boidVy;
 
     let nextX = boidX + boidVx * delta;
     let nextY = boidY + boidVy * delta;
     let wrapped = false;
-    if (nextX < -WRAP_MARGIN) {
-      nextX = wrapWidth;
-      wrapped = true;
-    } else if (nextX > wrapWidth) {
-      nextX = -WRAP_MARGIN;
-      wrapped = true;
+    if (bounceEdges) {
+      // Reflect back across the wall it overshot, clamped for a step wider than the canvas.
+      if (nextX < minBounceX) {
+        nextX = Math.min(maxBounceX, minBounceX + (minBounceX - nextX));
+        boidVx = -boidVx;
+      } else if (nextX > maxBounceX) {
+        nextX = Math.max(minBounceX, maxBounceX - (nextX - maxBounceX));
+        boidVx = -boidVx;
+      }
+      if (nextY < minBounceY) {
+        nextY = Math.min(maxBounceY, minBounceY + (minBounceY - nextY));
+        boidVy = -boidVy;
+      } else if (nextY > maxBounceY) {
+        nextY = Math.max(minBounceY, maxBounceY - (nextY - maxBounceY));
+        boidVy = -boidVy;
+      }
+    } else {
+      if (nextX < -WRAP_MARGIN) {
+        nextX = wrapWidth;
+        wrapped = true;
+      } else if (nextX > wrapWidth) {
+        nextX = -WRAP_MARGIN;
+        wrapped = true;
+      }
+      if (nextY < -WRAP_MARGIN) {
+        nextY = wrapHeight;
+        wrapped = true;
+      } else if (nextY > wrapHeight) {
+        nextY = -WRAP_MARGIN;
+        wrapped = true;
+      }
     }
-    if (nextY < -WRAP_MARGIN) {
-      nextY = wrapHeight;
-      wrapped = true;
-    } else if (nextY > wrapHeight) {
-      nextY = -WRAP_MARGIN;
-      wrapped = true;
-    }
+    vx[index] = boidVx;
+    vy[index] = boidVy;
     x[index] = nextX;
     y[index] = nextY;
 

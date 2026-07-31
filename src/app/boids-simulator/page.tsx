@@ -42,10 +42,12 @@ export default function BoidsSimulatorPage() {
   const usesTouchControls = isMobileViewport || isTouchDevice;
   const {
     activePreset,
+    bounceEdges,
     effectiveSettings,
     populationMaximum,
     restoreDefaults,
     selectPreset,
+    toggleBounceEdges,
     updateSetting,
   } = useFlockSettings(usesTouchControls);
   const { captureSnapshot, closeSnapshot, saveSnapshot, snapshot } =
@@ -79,6 +81,7 @@ export default function BoidsSimulatorPage() {
         <section className={styles.canvasShell} aria-label="Boids Simulator">
           <BoidsCanvas
             ref={canvasRef}
+            bounceEdges={bounceEdges}
             settings={effectiveSettings}
             paused={paused}
             showStats={showStats}
@@ -97,8 +100,10 @@ export default function BoidsSimulatorPage() {
 
         <ControlPanel
           activePreset={activePreset}
+          bounceEdges={bounceEdges}
           collapsed={panelCollapsed}
           mobileOpen={mobilePanelOpen}
+          onBounceEdgesToggle={toggleBounceEdges}
           onCollapsedToggle={() => setPanelCollapsed((current) => !current)}
           onDownload={() => void captureSnapshot()}
           onMobileOpenToggle={() => setMobilePanelOpen((current) => !current)}
