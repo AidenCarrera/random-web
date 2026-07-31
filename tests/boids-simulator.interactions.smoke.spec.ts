@@ -69,12 +69,10 @@ test.describe("Boids Simulator interactions", () => {
       "true",
     );
     await expect(
-      page.getByText(
-        "Soft forces create broad turns and calm, river-like streams.",
-      ),
+      page.getByText("Slower movement with wide, smooth turns."),
     ).toBeVisible();
 
-    await expect(population).toHaveValue("900");
+    await expect(population).toHaveValue("800");
     await population.fill("3000");
     await expect(population).toHaveValue("3000");
 
