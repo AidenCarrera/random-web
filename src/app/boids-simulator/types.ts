@@ -41,7 +41,8 @@ export type Flock = {
 export type FlockRenderer = {
   /** `width`/`height` are CSS pixels; `ratio` is the device pixel ratio. */
   resize: (width: number, height: number, ratio: number) => void;
-  draw: (flock: Flock, trails: boolean) => void;
+  /** `delta` is the frame's length in 60 Hz steps, and 0 while paused. */
+  draw: (flock: Flock, trails: boolean, delta: number) => void;
   dispose: () => void;
 };
 

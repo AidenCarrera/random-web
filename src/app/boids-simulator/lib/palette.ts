@@ -1,6 +1,10 @@
 export const BACKGROUND = "#10140f";
 
-export const TRAIL_ALPHA = 0.28;
+/** Alpha where a trail meets its boid; renderers fade older segments toward zero. */
+export const TRAIL_ALPHA = 0.6;
+// Alpha one frame's streak deposits into the phosphor buffer. Low on purpose: a single
+// pass is a faint smear, and repeatedly travelled lanes accumulate toward full brightness.
+export const PHOSPHOR_ALPHA = 0.24;
 
 const COLOR_PALETTE = [
   [92, 220, 255],
@@ -32,6 +36,7 @@ export const TRAIL_STYLES: string[] = [];
  */
 export const BODY_COLOR_WORDS: number[] = [];
 export const TRAIL_COLOR_WORDS: number[] = [];
+export const PHOSPHOR_COLOR_WORDS: number[] = [];
 
 const colorWord = (red: number, green: number, blue: number, alpha: number) =>
   ((alpha << 24) | (blue << 16) | (green << 8) | red) >>> 0;
@@ -48,6 +53,9 @@ function internColor(red: number, green: number, blue: number) {
   BODY_COLOR_WORDS.push(colorWord(red, green, blue, 255));
   TRAIL_COLOR_WORDS.push(
     colorWord(red, green, blue, Math.round(TRAIL_ALPHA * 255)),
+  );
+  PHOSPHOR_COLOR_WORDS.push(
+    colorWord(red, green, blue, Math.round(PHOSPHOR_ALPHA * 255)),
   );
   return id;
 }

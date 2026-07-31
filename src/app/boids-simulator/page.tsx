@@ -11,7 +11,13 @@ import { MetricsOverlay } from "./components/MetricsOverlay";
 import { useBrowserState } from "./hooks/useBrowserState";
 import { useFlockSettings } from "./hooks/useFlockSettings";
 import { useKeyboardControls } from "./hooks/useKeyboardControls";
+import { usePersistentState } from "./hooks/usePersistentState";
 import { useSnapshotExport } from "./hooks/useSnapshotExport";
+import {
+  DEFAULT_DISPLAY_PREFERENCES,
+  DISPLAY_STORAGE_KEY,
+  parseDisplayPreferences,
+} from "./lib/preferences";
 import styles from "./styles.module.css";
 import type { BoidsCanvasHandle, BoidsMetrics, BoidsPresetName } from "./types";
 
@@ -19,8 +25,12 @@ export default function BoidsSimulatorPage() {
   const reduceMotion = useReducedMotion();
   const canvasRef = useRef<BoidsCanvasHandle>(null);
   const [paused, setPaused] = useState(() => Boolean(reduceMotion));
-  const [trails, setTrails] = useState(false);
-  const [showStats, setShowStats] = useState(false);
+  const [display, setDisplay] = usePersistentState(
+    DISPLAY_STORAGE_KEY,
+    DEFAULT_DISPLAY_PREFERENCES,
+    parseDisplayPreferences,
+  );
+  const { showStats, trails } = display;
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [metrics, setMetrics] = useState<BoidsMetrics>({
@@ -42,6 +52,15 @@ export default function BoidsSimulatorPage() {
     useSnapshotExport(canvasRef);
 
   const togglePaused = useCallback(() => setPaused((current) => !current), []);
+  const toggleTrails = useCallback(
+    () => setDisplay((current) => ({ ...current, trails: !current.trails })),
+    [setDisplay],
+  );
+  const toggleStats = useCallback(
+    () =>
+      setDisplay((current) => ({ ...current, showStats: !current.showStats })),
+    [setDisplay],
+  );
   const reseed = useCallback(() => canvasRef.current?.reseed(), []);
   useKeyboardControls(togglePaused, reseed);
 
@@ -89,8 +108,8 @@ export default function BoidsSimulatorPage() {
           onRestoreDefaults={restoreDefaults}
           onScatter={() => canvasRef.current?.scatter()}
           onSettingChange={updateSetting}
-          onShowStatsToggle={() => setShowStats((current) => !current)}
-          onTrailsToggle={() => setTrails((current) => !current)}
+          onShowStatsToggle={toggleStats}
+          onTrailsToggle={toggleTrails}
           paused={paused}
           populationMaximum={populationMaximum}
           reduceMotion={Boolean(reduceMotion)}

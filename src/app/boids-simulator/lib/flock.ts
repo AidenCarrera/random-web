@@ -5,7 +5,7 @@ import { SORTED_STRIDE, type SpatialGrid } from "./spatial-grid";
 import { clampSpeed, createVector, steerToward } from "./steering";
 
 /** Trail points kept per boid; sizes the ring buffer on every boid. */
-export const TRAIL_CAPACITY = 10;
+export const TRAIL_CAPACITY = 22;
 
 const VELOCITY_RETENTION = 0.996;
 const WANDER_LIMIT = 0.7;

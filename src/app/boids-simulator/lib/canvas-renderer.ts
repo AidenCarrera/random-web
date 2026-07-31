@@ -5,6 +5,15 @@ import { BACKGROUND, BODY_STYLES, TRAIL_STYLES } from "./palette";
 
 const [TIP, LEFT, NOTCH, RIGHT] = BODY_SHAPE;
 
+// With trails on, the canvas itself carries the long history, so only the freshest
+// points are restroked as a bright head.
+const TRAIL_HEAD_POINTS = 8;
+
+// Background painted over the previous frame per 60 Hz step, standing in for the WebGL
+// phosphor buffer. 8-bit rounding stalls the fade a couple of counts short of the
+// background, which is invisible against a dark backdrop.
+const PHOSPHOR_FADE = 0.14;
+
 /** 2D canvas fallback. Rotates arrowheads via complex multiplication to bypass canvas state stack overhead. */
 export function createCanvasFlockRenderer(
   canvas: HTMLCanvasElement,
@@ -23,6 +32,15 @@ export function createCanvasFlockRenderer(
     context.fillRect(0, 0, viewWidth, viewHeight);
   };
 
+  // Veils the previous frame instead of erasing it, leaving a long exposure behind.
+  const fade = (delta: number) => {
+    if (delta <= 0) return;
+    context.globalAlpha = 1 - Math.pow(1 - PHOSPHOR_FADE, delta);
+    context.fillStyle = BACKGROUND;
+    context.fillRect(0, 0, viewWidth, viewHeight);
+    context.globalAlpha = 1;
+  };
+
   return {
     resize(width, height, ratio) {
       viewWidth = width;
@@ -35,11 +53,29 @@ export function createCanvasFlockRenderer(
       clear();
     },
 
-    draw(flock, trails) {
-      clear();
+    draw(flock, trails, delta) {
+      if (trails) fade(delta);
+      else clear();
       const { color, size, trail, trailLength, trailStart, vx, vy, x, y } =
         flock;
-      context.lineWidth = TRAIL_WIDTH;
+      context.lineCap = "round";
+      context.lineJoin = "round";
+
+      /** Strokes trail points `first` through `length` of the boid based at `base`. */
+      const strokeTrail = (
+        base: number,
+        start: number,
+        first: number,
+        length: number,
+      ) => {
+        context.beginPath();
+        for (let point = first; point < length; point += 1) {
+          const slot = base + (((start + point) % TRAIL_CAPACITY) << 1);
+          if (point === first) context.moveTo(trail[slot], trail[slot + 1]);
+          else context.lineTo(trail[slot], trail[slot + 1]);
+        }
+        context.stroke();
+      };
 
       for (let index = 0; index < flock.count; index += 1) {
         const boidX = x[index];
@@ -49,14 +85,13 @@ export function createCanvasFlockRenderer(
         if (trails && length > 1) {
           const base = index * TRAIL_CAPACITY * 2;
           const start = trailStart[index];
-          context.strokeStyle = TRAIL_STYLES[color[index]];
-          context.beginPath();
-          for (let point = 0; point < length; point += 1) {
-            const slot = base + (((start + point) % TRAIL_CAPACITY) << 1);
-            if (point === 0) context.moveTo(trail[slot], trail[slot + 1]);
-            else context.lineTo(trail[slot], trail[slot + 1]);
+          const head = Math.max(0, length - TRAIL_HEAD_POINTS);
+
+          if (length - head > 1) {
+            context.strokeStyle = TRAIL_STYLES[color[index]];
+            context.lineWidth = TRAIL_WIDTH;
+            strokeTrail(base, start, head, length);
           }
-          context.stroke();
         }
 
         // Unit heading, so the rotation below is a plain complex multiply.

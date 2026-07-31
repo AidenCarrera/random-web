@@ -169,8 +169,10 @@ export const BoidsCanvas = memo(
         step.settings = currentSettings;
         step.width = width;
 
-        const totalNeighbors = pausedRef.current ? 0 : stepFlock(step);
-        renderer.draw(flock, trailsRef.current);
+        const paused = pausedRef.current;
+        const totalNeighbors = paused ? 0 : stepFlock(step);
+        // A paused frame advances no time, so trails hold instead of decaying in place.
+        renderer.draw(flock, trailsRef.current, paused ? 0 : delta);
 
         frames += 1;
         neighborSamples += totalNeighbors / Math.max(1, flock.count);

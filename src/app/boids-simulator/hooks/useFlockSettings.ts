@@ -1,26 +1,33 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 
 import {
   MAX_POPULATION,
   TOUCH_DEFAULT_POPULATION,
   TOUCH_MAX_POPULATION,
 } from "../constants";
-import { BOIDS_PRESETS, DEFAULT_BOIDS_SETTINGS } from "../data/presets";
+import { BOIDS_PRESETS } from "../data/presets";
+import {
+  DEFAULT_FLOCK_PREFERENCES,
+  FLOCK_STORAGE_KEY,
+  parseFlockPreferences,
+} from "../lib/preferences";
 import type { BoidsPresetName, BoidsSettings } from "../types";
+import { usePersistentState } from "./usePersistentState";
 
 /** Manages flocking settings and enforces device-specific population caps. */
 export function useFlockSettings(usesTouchControls: boolean) {
-  const [settings, setSettings] = useState(DEFAULT_BOIDS_SETTINGS);
-  const [activePreset, setActivePreset] = useState<BoidsPresetName | null>(
-    "Balanced",
+  const [preferences, setPreferences] = usePersistentState(
+    FLOCK_STORAGE_KEY,
+    DEFAULT_FLOCK_PREFERENCES,
+    parseFlockPreferences,
   );
-  const [hasChosenPopulation, setHasChosenPopulation] = useState(false);
+  const { chosePopulation, preset: activePreset, settings } = preferences;
 
   const populationMaximum = usesTouchControls
     ? TOUCH_MAX_POPULATION
     : MAX_POPULATION;
   const population =
-    usesTouchControls && !hasChosenPopulation
+    usesTouchControls && !chosePopulation
       ? TOUCH_DEFAULT_POPULATION
       : Math.min(settings.count, populationMaximum);
   const effectiveSettings = useMemo(
@@ -33,42 +40,45 @@ export function useFlockSettings(usesTouchControls: boolean) {
 
   const selectPreset = useCallback(
     (preset: BoidsPresetName) => {
-      setActivePreset(preset);
-      setHasChosenPopulation(true);
-      setSettings({
-        ...BOIDS_PRESETS[preset],
-        count: Math.min(BOIDS_PRESETS[preset].count, populationMaximum),
+      setPreferences({
+        settings: {
+          ...BOIDS_PRESETS[preset],
+          count: Math.min(BOIDS_PRESETS[preset].count, populationMaximum),
+        },
+        preset,
+        chosePopulation: true,
       });
     },
-    [populationMaximum],
+    [populationMaximum, setPreferences],
   );
 
   const updateSetting = useCallback(
     (key: keyof BoidsSettings, value: number) => {
-      setActivePreset(null);
-      if (key === "count") setHasChosenPopulation(true);
-      setSettings((current) => {
+      setPreferences((current) => {
         const next = {
-          ...current,
-          count: Math.min(current.count, populationMaximum),
+          ...current.settings,
+          count: Math.min(current.settings.count, populationMaximum),
           [key]: key === "count" ? Math.min(value, populationMaximum) : value,
         };
         // The speed band cannot invert, so the opposite end follows along.
-        if (key === "minSpeed" && value > current.maxSpeed)
+        if (key === "minSpeed" && value > current.settings.maxSpeed)
           next.maxSpeed = value;
-        if (key === "maxSpeed" && value < current.minSpeed)
+        if (key === "maxSpeed" && value < current.settings.minSpeed)
           next.minSpeed = value;
-        return next;
+        return {
+          settings: next,
+          preset: null,
+          chosePopulation: current.chosePopulation || key === "count",
+        };
       });
     },
-    [populationMaximum],
+    [populationMaximum, setPreferences],
   );
 
-  const restoreDefaults = useCallback(() => {
-    setSettings(DEFAULT_BOIDS_SETTINGS);
-    setActivePreset("Balanced");
-    setHasChosenPopulation(false);
-  }, []);
+  const restoreDefaults = useCallback(
+    () => setPreferences(DEFAULT_FLOCK_PREFERENCES),
+    [setPreferences],
+  );
 
   return {
     activePreset,
