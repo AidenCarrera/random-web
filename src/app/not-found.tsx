@@ -5,22 +5,29 @@ import { Shuffle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
-import { RANDOM_WEBSITE_PATHS } from "@/lib/websites";
+import { pickRandomWebsitePath } from "@/lib/websites";
 
 const REVEALED_WEBSITES_KEY = "random-webs-revealed-websites";
 
-function revealWebsite(path: string) {
+function readRevealedWebsites() {
   try {
     const savedWebsites = window.localStorage.getItem(REVEALED_WEBSITES_KEY);
     const parsedWebsites: unknown = savedWebsites
       ? JSON.parse(savedWebsites)
       : [];
-    const revealedWebsites = Array.isArray(parsedWebsites)
+
+    return Array.isArray(parsedWebsites)
       ? parsedWebsites.filter(
           (savedPath): savedPath is string => typeof savedPath === "string",
         )
       : [];
+  } catch {
+    return [];
+  }
+}
 
+function revealWebsite(revealedWebsites: string[], path: string) {
+  try {
     window.localStorage.setItem(
       REVEALED_WEBSITES_KEY,
       JSON.stringify(Array.from(new Set([...revealedWebsites, path]))),
@@ -43,12 +50,10 @@ export default function NotFound() {
     isNavigating.current = true;
     setLoading(true);
 
-    const randomPage =
-      RANDOM_WEBSITE_PATHS[
-        Math.floor(Math.random() * RANDOM_WEBSITE_PATHS.length)
-      ];
+    const revealedWebsites = readRevealedWebsites();
+    const randomPage = pickRandomWebsitePath(revealedWebsites);
 
-    revealWebsite(randomPage);
+    revealWebsite(revealedWebsites, randomPage);
 
     window.setTimeout(() => {
       router.push(randomPage);

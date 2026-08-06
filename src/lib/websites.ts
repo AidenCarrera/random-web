@@ -447,4 +447,13 @@ export const WEBSITES: WebsiteEntry[] = [
 
 export const RANDOM_WEBSITE_PATHS = WEBSITES.map((website) => website.path);
 
+// Prefers unseen websites so discovery never repeats until everything is found.
+export function pickRandomWebsitePath(visitedPaths: Iterable<string> = []) {
+  const visited = new Set(visitedPaths);
+  const unvisited = RANDOM_WEBSITE_PATHS.filter((path) => !visited.has(path));
+  const candidates = unvisited.length > 0 ? unvisited : RANDOM_WEBSITE_PATHS;
+
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
 export const SITE_LAST_MODIFIED = "2026-07-26";

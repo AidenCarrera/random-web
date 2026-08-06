@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Shuffle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { RANDOM_WEBSITE_PATHS, WEBSITES } from "@/lib/websites";
+import { pickRandomWebsitePath, WEBSITES } from "@/lib/websites";
 
 const REVEALED_WEBSITES_KEY = "random-webs-revealed-websites";
 
@@ -49,10 +49,7 @@ export default function Home() {
 
     isNavigating.current = true;
     setLoading(true);
-    const randomPage =
-      RANDOM_WEBSITE_PATHS[
-        Math.floor(Math.random() * RANDOM_WEBSITE_PATHS.length)
-      ];
+    const randomPage = pickRandomWebsitePath(revealedWebsites);
     const nextRevealedWebsites = Array.from(
       new Set([...revealedWebsites, randomPage]),
     );
