@@ -18,7 +18,7 @@ export function ClickArena({
   duration: Duration;
   isActive: boolean;
   canRestart: boolean;
-  readout: Readout | null;
+  readout: Readout;
   onClick: (clickTime: number) => void;
   onReset: () => void;
 }) {
@@ -56,7 +56,7 @@ export function ClickArena({
         </span>
       </button>
 
-      {readout && <RunReadout readout={readout} />}
+      <RunReadout readout={readout} />
     </div>
   );
 }
@@ -64,11 +64,10 @@ export function ClickArena({
 function RunReadout({ readout }: { readout: Readout }) {
   return (
     <div className="mt-8 min-w-0 w-full text-center transition-all duration-300 animate-in fade-in">
-      {readout.title && (
-        <p className="mb-2 flex items-center justify-center gap-1.5 text-slate-400 font-semibold tracking-wider text-xs uppercase">
-          {readout.title}
-        </p>
-      )}
+      {/* Holds its line even when empty, so the arena does not jump between states. */}
+      <p className="mb-2 flex min-h-4 items-center justify-center gap-1.5 text-slate-400 font-semibold tracking-wider text-xs uppercase">
+        {readout.title}
+      </p>
       <div className="mb-2 text-3xl font-bold text-white">
         {readout.clicks} Clicks{" "}
         <span className="text-xl text-slate-500">

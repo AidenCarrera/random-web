@@ -46,10 +46,10 @@ export function useClickSpeedTest() {
     ? clicks / Math.max(duration - timeLeft, 1)
     : resultCps;
 
-  const readout = useMemo<Readout | null>(() => {
+  const readout = useMemo<Readout>(() => {
     if (isActive) return { title: "", clicks, cps: liveCps, pace };
     if (resultCps > 0 || clicks > 0)
-      return { title: "Result", clicks, cps: resultCps, pace };
+      return { title: "", clicks, cps: resultCps, pace };
 
     const [latest] = history;
     if (latest)
@@ -60,8 +60,14 @@ export function useClickSpeedTest() {
         pace: latest.pace,
       };
 
-    return null;
-  }, [clicks, history, isActive, liveCps, pace, resultCps]);
+    // Idle stand-in, so the arena is the same height before the first run.
+    return {
+      title: "Ready",
+      clicks: 0,
+      cps: 0,
+      pace: Array<number>(duration).fill(0),
+    };
+  }, [clicks, duration, history, isActive, liveCps, pace, resultCps]);
 
   // Read after mount so stored progress cannot desync the server-rendered markup.
   useEffect(() => {

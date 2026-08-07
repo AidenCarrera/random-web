@@ -31,7 +31,7 @@ export type Milestone = {
   color: string;
 };
 
-/** What the arena shows: the live run, the run that just ended, or the last one. */
+/** What the arena shows: the live run, a finished one, or the idle placeholder. */
 export type Readout = {
   title: string;
   clicks: number;

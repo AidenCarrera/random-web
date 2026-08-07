@@ -23,8 +23,9 @@ export function ClickSpeedTest() {
         </h1>
       </header>
 
-      <div className="grid flex-1 grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
-        <aside className="order-2 flex h-full flex-col gap-6 lg:order-1 lg:col-span-3">
+      {/* Columns share the outer grid's rows so the panels line up across them. */}
+      <div className="grid flex-1 grid-cols-1 items-stretch gap-6 lg:grid-cols-12 lg:grid-rows-[auto_1fr]">
+        <aside className="order-2 flex flex-col gap-6 lg:order-1 lg:col-span-3 lg:row-span-2 lg:grid lg:grid-rows-subgrid">
           <DurationPicker
             duration={test.duration}
             disabled={test.isActive}
@@ -36,7 +37,7 @@ export function ClickSpeedTest() {
           />
         </aside>
 
-        <section className="order-1 flex h-full min-w-0 flex-col gap-6 lg:order-2 lg:col-span-6">
+        <section className="order-1 flex min-w-0 flex-col gap-6 lg:order-2 lg:col-span-6 lg:row-span-2 lg:grid lg:grid-rows-subgrid">
           <Scoreboard
             liveCps={test.liveCps}
             timeLeft={test.timeLeft}
@@ -55,7 +56,7 @@ export function ClickSpeedTest() {
           />
         </section>
 
-        <aside className="order-3 flex h-full flex-col lg:col-span-3">
+        <aside className="order-3 flex flex-col lg:col-span-3 lg:row-span-2">
           <SessionHistory history={test.history} />
         </aside>
       </div>
