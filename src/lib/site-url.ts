@@ -7,7 +7,7 @@ if (typeof window !== "undefined") {
   );
 }
 
-const DEFAULT_SITE_URL = "https://random-webs.vercel.app";
+const DEFAULT_SITE_URL = "https://random.aidencarrera.com";
 
 function getSiteUrl() {
   const configuredUrl = process.env.SITE_URL || DEFAULT_SITE_URL;
